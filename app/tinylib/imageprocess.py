@@ -42,14 +42,14 @@ def cropandbackground(filepath):
 
 
 
-path_of_the_directory = '/home/tinymrp/Fileserver/Deliverables/png/'
-object = os.scandir(path_of_the_directory)
-print("Files and Directories in '% s':" % path_of_the_directory)
-for n in object :
-    if ".png" in n.name and n.is_file() and not "_DWG.png" in n.name and not ".thumbnail.png" in n.name:
-        # print(n.path)
-        try:
-            cropandbackground(n.path)
-        except:
-            print("cannot do ", n.name)
-object.close()
+# path_of_the_directory = '/home/tinymrp/Fileserver/Deliverables/png/'
+# object = os.scandir(path_of_the_directory)
+# print("Files and Directories in '% s':" % path_of_the_directory)
+# for n in object :
+#     if ".png" in n.name and n.is_file() and not "_DWG.png" in n.name and not ".thumbnail.png" in n.name:
+#         # print(n.path)
+#         try:
+#             cropandbackground(n.path)
+#         except:
+#             print("cannot do ", n.name)
+# object.close()

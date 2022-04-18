@@ -265,7 +265,9 @@ def mongopartdata():
 
     #check files and save (to polish redundant checks)
     for part in allparts:
+        
         part.getweblinks()
+        
         
 
     #Modify the imagelink
@@ -281,10 +283,11 @@ def mongopartdata():
             # print("the part link" , urllink)
 
         try:
-            part['pngpath']= '<a href="'+ urllink +  '">' + """<img src='""" + part.pngpath + """' width=auto height=30rm></a>"""
+            part['pngpath']= '<a href="'+ urllink +  '">' + """<img src='""" + "http://"+part.pngpath + """' width=auto height=30rm></a>"""
             # print("the image link" , part['pngpath'])
         except:
             pass
+        
         webdata.append(part.to_dict())
         
  
@@ -473,9 +476,13 @@ def details(partnumber,revision=""):
 @login_required
 #@tinylib.route('/part/<partnumber>_rev_<revision>/page/<int:page>', methods=('GET', 'POST'))
 def partnumber(partnumber,revision="",detail="full",page=1):
+    print("PARTNUMBER - ",partnumber,"REVISION - ",revision)
     
     try:
+        print(partnumber,revision)
         mongopart=mongoPart.objects(partnumber=partnumber,revision=revision).first()
+        print(mongopart)
+        print(mongopart.treeDict())
         treedata=json.dumps(mongopart.treeDict())
     except:
         mongopart=mongoPart.objects(partnumber=partnumber,revision="").first()
@@ -489,8 +496,8 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
     searchform= SearchSimple()
 
-    rev=""
-    if revision==None or revision=="%" or revision =="":
+    
+    if revision==None or revision=="%" or revision =="%25" or revision =="":
         rev=""   
     else:
         rev=revision
@@ -500,9 +507,12 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
         #print(partnumber)
         print("-",revision)
-        part=Part.query.filter_by(partnumber=partnumber,revision=rev).order_by(Part.process.desc()).first()
-        if part==None:
-            part=Part.query.filter_by(partnumber=partnumber).order_by(Part.revision.desc()).first()
+        
+
+        part=mongoPart.objects(partnumber=partnumber,revision=rev)[0]
+        #part=Part.query.filter_by(partnumber=partnumber,revision=rev).order_by(Part.process.desc()).first()
+        # if part==None:
+        #     part=Part.query.filter_by(partnumber=partnumber).order_by(Part.revision.desc()).first()
         parts=part.children_with_qty()
 
         hardware=[]
@@ -511,7 +521,13 @@ def partnumber(partnumber,revision="",detail="full",page=1):
         composedprocesses=[]
 
         #UPdate related part files location to the webserver
-        part.updatefilespath(webfileserver)
+        #part.updatefilespath(webfileserver)
+        part.updateFileset(web=True,persist=True)
+        #part.getweblinks()
+        part.get_process_icons()
+
+        print(part['process_colors'])
+        print(part['process_icons'])
 
 
 
@@ -541,39 +557,50 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
       
             for parto in flatbom:
-                parto.updatefilespath(webfileserver,png_thumbnail=True)
+                # parto.updatefilespath(webfileserver,png_thumbnail=True)
+                parto.updateFileset(web=True)
                 parto.MainProcess()
                 for process in process_conf.keys():
                         if parto.hasProcess(process) and  process not in needed_processes :
                             needed_processes.append(process)
-                if (not parto.process in process_conf.keys() or \
-                   (parto.process2!="" and not parto.process2 in process_conf.keys() )or \
-                   (parto.process3!="" and not parto.process3 in process_conf.keys() )) and \
-                   "others" not in needed_processes:
-                        needed_processes.append( "others")
-                if  (bool(parto.process) ^ bool(parto.process2)  ^ bool(parto.process3)):
-                    #print (parto.partnumber)
-                    pass
-                else:
-                    print (parto.partnumber, parto.process,parto.process2,parto.process3)
-                    composed_process=[parto.process,parto.process2,parto.process3]
-                    composed_process.sort()
-                    composed_process=set([x for x in composed_process if x!=""])
-                    composed.append(parto)
-                    parto.composed_process=composed_process
-                    if len(composed_process)>1 and not composed_process in composedprocesses:
-                        composedprocesses.append(composed_process)
-                        comp_icon=[process_conf[process]['icon'] for process in composed_process]
-                        composedicons.append(comp_icon)
+                
+                # if (not parto.process in process_conf.keys() or \
+                #    (parto.process2!="" and not parto.process2 in process_conf.keys() )or \
+                #    (parto.process3!="" and not parto.process3 in process_conf.keys() )) and \
+                #    "others" not in needed_processes:
+                #         needed_processes.append( "others")
+                
+                #Add others mark in case of funky process
+                addothers=False
+                for process in parto.process:
+                    if not process  in process_conf.keys():addothers=True
+                if addothers: needed_processes.append( "others")
+                
+                
+                
+            #     if  (bool(parto.process) ^ bool(parto.process2)  ^ bool(parto.process3)):
+            #         #print (parto.partnumber)
+            #         pass
+            #     else:
+            #         print (parto.partnumber, parto.process,parto.process2,parto.process3)
+            #         composed_process=[parto.process,parto.process2,parto.process3]
+            #         composed_process.sort()
+            #         composed_process=set([x for x in composed_process if x!=""])
+            #         composed.append(parto)
+            #         parto.composed_process=composed_process
+            #         if len(composed_process)>1 and not composed_process in composedprocesses:
+            #             composedprocesses.append(composed_process)
+            #             comp_icon=[process_conf[process]['icon'] for process in composed_process]
+            #             composedicons.append(comp_icon)
                 
 
-            #PRint the composed process for checking
-            for comp in composedprocesses:
-                    print(comp)
+            # #PRint the composed process for checking
+            # for comp in composedprocesses:
+            #         print(comp)
 
-             #PRint the composed process for checking
-            for icon in composedicons:
-                    print("icon ",icon)
+            #  #PRint the composed process for checking
+            # for icon in composedicons:
+            #         print("icon ",icon)
         else:
             flatbom=""
         
@@ -584,7 +611,8 @@ def partnumber(partnumber,revision="",detail="full",page=1):
                 hardware.append(parto)
             else:
 
-                parto.updatefilespath(webfileserver)
+                #parto.updatefilespath(webfileserver)
+                parto.updateFileset(web=True)
 
                 for process in process_conf.keys():
                     if parto.hasProcess(process) and  process not in needed_processes :
@@ -598,8 +626,15 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
         parents=part.parents_with_qty()
 
+        print(parents)
+
         for parto in parents:
-            parto.updatefilespath(webfileserver)
+            #parto.updatefilespath(webfileserver)
+            parto.updateFileset(web=True)
+            parto.get_process_icons()
+        for parto in parents:
+            print(part['process_colors'])
+            print(part['process_icons'])
 
         # comments=[]
         # # for comment in part.comments:
@@ -619,8 +654,10 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
         legend=[ {'process':process,'icon':'images/'+icon,'color':color} for  (process,icon,color) in zip(needed_processes,icons,colors) ]
 
-        print("THIS IS THE ", legend)
+        part.updateFileset(web=True,persist=True)
+        print("THIS IS THEs ", part.to_dict())
 
+        
 
         return render_template("tinylib/part/details.html",part=part,parts=parts,treedata=treedata,
                                hardware=hardware,parents=parents,
@@ -700,51 +737,70 @@ def upload_file():
         session['search']=searchstring
         return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
    
-
-    
-    
+  
 
     if bomform.validate_on_submit():
+        
         f = secure_filename(bomform.file.data.filename)
-        
-        folder= os.path.dirname(os.path.abspath(__file__))        
-        targetfile= folder+ "/" + config['UPLOAD_PATH']+ "/" + secure_filename(f)
-        print(targetfile)
-        print(folderout)
-
-        
+        targetfolder= os.path.dirname(os.path.abspath(__file__))  + "/" + config['UPLOAD_PATH']+ "/"      
+        targetfile= targetfolder + f
+        filestring=Path(targetfile).stem
         
 
-
-
-
+        #Save uploaded file
         bomform.file.data.save(targetfile)
 
-        
-        
-        #return "targetfile---" + targetfile + "*****  deliverables_folder----" + deliverables_folder+ "*******  fileserver_path---" + fileserver_path+ "*******  folderout---" + folderout
+        #unzip file
+        shutil.unpack_archive(targetfile, targetfolder, "zip")
 
-        bom_in=solidbom(targetfile,deliverables_folder,fileserver_path+folderout)
-
-        
-
-
-        if bom_in.revision=="":
-            bom_in.revision="%25"
+        bomfolder=targetfolder+"/"+filestring
+        bomfile=bomfolder+"/"+filestring+"_TREEBOM.txt"
+        flatfile=bomfolder+"/"+filestring+"_FLATBOM.txt"
 
 
-        flash("BOM uploaded successfully")
-        # return render_template('tinylib/upload.html',upload=True, searchform=searchform , bomform=bomform)
-
+        #Remove original file
         try:
             os.remove(targetfile)
         except:
             flash("Couldn't erase upload file ", targetfile)
 
-        if bom_in.revision=="":
-            bom_in.revision="%25"
+        #Create the SOLIDBOM
+        bom_in=solidbom(bomfile,flatfile,deliverables_folder,fileserver_path+folderout)
+    
+        print("**********************************")
+        print(bom_in.partnumber)
+        print("**********************************")
+        session['search']=bom_in.partnumber
+
+        # print(input("error"))
+        # return render_template('tinylib/upload.html',upload=False, searchform=searchform , bomform=bomform)
+        return redirect(url_for('tinylib.search',searchstring=bom_in.partnumber,page=1 ,searchform=searchform))
+
         
-        return redirect(url_for('tinylib.details',partnumber=bom_in.partnumber,revision=bom_in.revision, searchform=searchform ))            
+        
+        #Remove solidbomb splitfiles
+        # try:
+        #     shutil.rmtree(bomfolder)
+        #     # os.remove(flatfile)
+        #     # os.remove(bomfile)
+        # except:
+        #     flash("Couldn't temp bom/flat files ", bomfile,flatfile)
+        
+        # return jsonify(bom_in.partnumber)
+
+        # if bom_in.revision=="":
+        #     bom_in.revision="%25"
+
+
+        # flash("BOM uploaded successfully")
+        # # return render_template('tinylib/upload.html',upload=True, searchform=searchform , bomform=bomform)
+
+        
+
+        # if bom_in.revision=="":
+        #     bom_in.revision="%25"
+        
+        # return redirect(url_for('tinylib.details',partnumber=bom_in.partnumber,revision=bom_in.revision, searchform=searchform ))            
            
     else:
         return render_template('tinylib/upload.html',upload=False, searchform=searchform , bomform=bomform)
@@ -1160,22 +1216,28 @@ def process_docpack(partnumber,revision,processin,components_only):
 @login_required
 def process_visuallist(partnumber,revision,processin,components_only):
 
+
     #Remove spaces from link
     process=processin.replace('%20',' ')
 
 
-    if revision==None or "%" in revision  or revision =="":
+    rev=""
+    if revision==None or revision=="%" or revision =="" or revision =="%25" or revision =="%2525":
         rev=""
     else:
         rev=revision
 
+  
+
 
     #Get the top part level object
-    part_in=Part.query.filter_by(partnumber=partnumber,revision=rev).first()
+    part_in=mongoPart.objects(partnumber=partnumber,revision=rev).first()
+
+
     print(part_in)
     #Set qty to one to compute the rest and updatepaths
-    part_in.qty=1
-    part_in.updatefilespath(fileserver_path,local=True)
+    part_in['qty']=1
+    part_in.updateFileset(fileserver_path)
 
     #Add the top part to the list
     flatbom=[]
@@ -1350,18 +1412,21 @@ def process_label_list(partnumber,revision,processin,components_only):
     process=processin.replace('%20',' ')
 
 
-    if revision==None or "%" in revision  or revision =="":
+    rev=""
+    if revision==None or revision=="%" or revision =="" or revision =="%25" or revision =="%2525":
         rev=""
     else:
         rev=revision
 
+  
+
 
     #Get the top part level object
-    part_in=Part.query.filter_by(partnumber=partnumber,revision=rev).first()
+    part_in=mongoPart.objects(partnumber=partnumber,revision=rev).first()
     print(part_in)
     #Set qty to one to compute the rest and updatepaths
     part_in.qty=1
-    part_in.updatefilespath(fileserver_path,local=True)
+    part_in.updateFileset(fileserver_path,local=True)
 
     #Add the top part to the list
     flatbom=[]
@@ -1448,43 +1513,29 @@ def process_label_list(partnumber,revision,processin,components_only):
 
 def pdfwithdescription(partnumber,revision=""):
     commentform=PartComment()
-
     rev=""
-    if revision==None or revision=="%" or revision =="":
+    if revision==None or revision=="%" or revision =="" or revision =="%25" or revision =="%2525":
         rev=""
     else:
         rev=revision
 
-
     if request.method == 'GET':
 
-        #print(partnumber)
-        print("-",revision)
-        part=Part.query.filter_by(partnumber=partnumber,revision=rev).order_by(Part.process.desc()).first()
-        if part==None:
-            part=Part.query.filter_by(partnumber=partnumber).order_by(Part.revision.desc()).first()
+        
+        part=mongoPart.objects(partnumber=partnumber,revision=rev).first()
 
-
-        part.updatefilespath(webfileserver)
+        part.updateFileset(webfileserver)
         #MOVE FILE to temp folder
-        # flash(part.pdfpath)
         path, filename = os.path.split(part.pdfpath)
-        # flash(filename)
         #remove extension
         filename=os.path.splitext(filename)[0]
-        # flash(filename)
-
         finalfile=fileserver_path+deliverables_folder+"temp/"+filename+"_"+part.description+".pdf"
         finalfile=finalfile.replace(" ","_")
-        # flash(finalfile)
-        
+       
         shutil.copy2(Path(part.pdfpath.replace(webfileserver,fileserver_path)),Path(finalfile) )
         
         #Create the web link 
         weblink="http://"+finalfile.replace(fileserver_path,webfileserver)
-
-        #print(weblink)
-        # flash(weblink)
     
         return redirect(weblink)            
         

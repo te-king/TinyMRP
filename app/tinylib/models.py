@@ -88,8 +88,8 @@ import urllib
 
 
 
-
-
+#Tinylib internal imports
+from .imageprocess import cropandbackground
 
 
 
@@ -97,11 +97,19 @@ import urllib
 #from mongoengine import *
 from mongoengine import EmbeddedDocument,EmbeddedDocumentField, \
                         StringField,ListField,IntField, DynamicDocument,\
-                        ReferenceField
+                        ReferenceField,DynamicField
 import pymongo
+import json
+from pymongo import MongoClient
+from werkzeug.utils import secure_filename
+
 client = pymongo.MongoClient("localhost", 27017)
 mongodb=client.TinyMRP
 partcol=mongodb["part"]
+
+
+
+
 #File sets class:
 class mongoFileSet(EmbeddedDocument):
     description=StringField()
@@ -129,10 +137,18 @@ class mongoPart(DynamicDocument):
     partnumber=StringField()
     description=StringField()
     revision=StringField()
-    processes=ListField(StringField())
+    finish=StringField()
     children=ListField(ReferenceField("self"))
     childrenqty=ListField(IntField())
-    
+
+
+    #Uploader
+    approved=StringField()
+    uploader=DynamicField()
+    #Procurement/customer
+    category=DynamicField()
+    supplier=DynamicField()
+    customer=DynamicField()
     
     #Related files locations
     #fileset=EmbeddedDocumentField(mongoFileSet)
@@ -145,12 +161,74 @@ class mongoPart(DynamicDocument):
     steppath=StringField()
     threemfpath=StringField()
     datasheetpath=StringField()
+    qrpath=StringField()
     #Real pictures of the object
     picpath=ListField(StringField())
     #pics for drawings allows several pages (several images)
     png_dpath=StringField()
     #For another attachements
     otherspath=ListField(StringField())
+    
+    #Processes
+    process=DynamicField()
+    process_colors=DynamicField()
+    process_icons=DynamicField()
+
+    tag=StringField()
+
+
+
+    def hasConsumingProcess(self):
+        consume=False
+
+        processlist=self.process
+        processlist=[x for x in processlist if x in process_conf.keys()]
+
+        for process in processlist:
+            if int(process_conf[process]['priority'])<20:
+                consume=True
+
+        return consume
+
+
+
+    def isMainProcess(self,process):
+        mainprocess_bool=False
+
+        if self.hasProcess(process):
+            processlist=self.process
+            processlist=[x for x in processlist if x in process_conf.keys()]
+            if len(processlist)>0:
+                for x in processlist:
+                    if int(process_conf[process]['priority'])<= int(process_conf[x]['priority']):
+                        mainprocess_bool=True
+                        
+                    else:
+                        mainprocess_bool=False
+            
+
+        return mainprocess_bool
+
+
+    def MainProcess(self):
+        processlist=self.process
+        print(self.partnumber)
+        print(processlist)
+        if len(processlist)>0: processlist=[x for x in processlist if x in process_conf.keys()]
+
+        
+        if len(processlist)>0:
+            mainprocess=processlist[0]
+            for x in processlist:
+                if int(process_conf[x]['priority'])<= int(process_conf[mainprocess]['priority']):
+                    mainprocess=x
+
+        else:
+            mainprocess='other'
+        self.mainprocess=mainprocess
+                
+        return mainprocess
+
     
     #Get tree for tree representation:
     def treeDict(self, count=0,qty=1):
@@ -212,6 +290,18 @@ class mongoPart(DynamicDocument):
             outlist.append(kid)
             i+=1
         return outlist
+
+    def children_with_qty (self):
+        outlist=[]
+        i=0
+        for child in self.children:
+            kid=child
+            # kid['part']=partcol.find_one({"_id":child.id})
+            kid['part']=mongoPart.objects(pk=child.id)[0]
+            kid['qty']=self.childrenqty[i]
+            outlist.append(kid)
+            i+=1
+        return outlist
     
 
     #To get the parents with quantities in those parents
@@ -233,25 +323,80 @@ class mongoPart(DynamicDocument):
             i+=1
                
         return outlist
+
+    def parents_with_qty(self):
+        outlist=[]
+      
+        parents=mongoPart.objects(children=self.pk)
+    
+        for parent in parents:
+            j=0
+            for kid in parent.children:
+                if kid.pk==self.pk:
+                    parent['qty']=parent.childrenqty[j]
+                j+=1
+            outlist.append(parent)
+            
+               
+        return outlist
+
+        
+    def get_process_icons (self,persist=False):
+        self['process_icons']=[]
+        self['process_colors']=[]
+
+        if type(self['process'])==str:
+            self['process']=[self['process']]
+            if self['process2'] and self['process2']!="" and self['process2']!=" ":
+                 self['process'].append(self['process2'])
+            if self['process3'] and self['process3']!="" and self['process2']!=" ":
+                 self['process'].append(self['process3'])
+            persist=True
+
+        if type(self['process'])==list:
+            
+            #Put all to lowercase
+            self['process']=list(map(lambda x: x.lower(), self['process']))
+
+            #Remove duplicates
+            self['process']=list(dict.fromkeys(self['process']))
+
+            for process in self['process']:
+                if process in process_conf.keys() :
+                    self['process_icons'].append('images/'+(process_conf[process]['icon']))
+                    self['process_colors'].append(process_conf[process]['color'])
+                else:
+                    self['process_icons'].append('images/'+process_conf['others']['icon'])
+                    self['process_colors'].append(process_conf['others']['color'])
+        
+        if persist: self.save() 
+
        
     #To return a dictinary with the parts attributes
     def to_dict(self):
+        print(self.partnumber)
         
-        dirty_dict=self.to_mongo()#.to_dict()
+        #dirty_dict=self.to_mongo()#.to_dict()
+        #dirty_dict['_id']=str(dirty_dict['_id'])
 
-        dirty_dict['_id']=str(dirty_dict['_id'])
+        dirtydict={}
+        dirtydict['partnumber']=self.partnumber
+        dirtydict['revision']=self.revision
+        dirtydict['description']=self.description
+        dirtydict['process']=self.process
+        dirtydict['finish']=self.finish
+        dirtydict['children']=self.children
+        dirtydict['pngpath']=self.pngpath
 
         cleanchildren=[]
-        for child in dirty_dict['children']:
+        for child in dirtydict['children']:
             cleanchildren.append(str(child))
         
-        dirty_dict['children']=cleanchildren
-
-        # print("al;sdfja;slkd;aslkj;laskdkjdfkd")
-        # print(dirty_dict)
+        dirtydict['children']=cleanchildren
 
 
-        return dirty_dict
+
+        return dirtydict
     
     #Generates a time stamp tag with partnumber and rev
     def get_tag(self):
@@ -299,7 +444,8 @@ class mongoPart(DynamicDocument):
     
 
     #Check for all available files in the Fileserver folders for a part
-    def updateFileset(self,web=False):
+    def updateFileset(self,web=False,persist=False):
+        self.get_tag()
         parttag=self.partnumber+"_REV_"+self.revision
         # if self.fileset is None:
         #     self.fileset=mongoFileSet(description="Fileset for "+parttag)
@@ -307,6 +453,7 @@ class mongoPart(DynamicDocument):
         for filetype in config['DELIVERABLES']:
             filelist=[]
             for extension in config['DELIVERABLES'][filetype]['extension']:
+                
                 filetag=config['DELIVERABLES'][filetype]['path']+parttag+str(config['DELIVERABLES'][filetype]['filemod'])+"."+extension
                 
                 if file_exists(filetag):
@@ -337,11 +484,16 @@ class mongoPart(DynamicDocument):
 
                 if web:
                     try:
-                        self[filetype+'path']=self[filetype+'path'].replace(fileserver_path,"http://"+webfileserver)
-                        # print(self[filetype+'path'])
+                        self[filetype+'path']=self[filetype+'path'].replace(fileserver_path,webfileserver)
+
+                        
+                        
+                        print( (self[filetype+'path']))
+                        print( secure_filename(self[filetype+'path']))
                     except:
                         pass
-        if save: self.save()
+        if persist:
+            if save: self.save()
 
 
     def getweblinks(self,checkfiles=False):
@@ -355,7 +507,7 @@ class mongoPart(DynamicDocument):
                 for extension in config['DELIVERABLES'][filetype]['extension']:
                     filetag=config['DELIVERABLES'][filetype]['path']+parttag+str(config['DELIVERABLES'][filetype]['filemod'])+"."+extension
                     try:
-                            self[filetype+'path']=self[filetype+'path'].replace(fileserver_path,"http://"+webfileserver)
+                            self[filetype+'path']=self[filetype+'path'].replace(fileserver_path,webfileserver)
                             # print(self[filetype+'path'])
                     except:
                             pass
@@ -395,7 +547,12 @@ class mongoPart(DynamicDocument):
         
         #Range flatbom by partnumber
         #flatbom.sort(key=lambda x: x.partnumber)
-        flatbom.sort(key=lambda x: (x.category,x.supplier,x.oem,x.approved,x.partnumber))
+        print(flatbom)
+        #input("stop")
+
+
+
+        # flatbom.sort(key=lambda x: (x.category,x.supplier,x.approved,x.partnumber))
         
         totalqty=0
         for item in flatbom:
@@ -489,7 +646,7 @@ def thumbnail(infile, size=(100, 100)):
 
 
 #To create a QR code to point to part link in tiny:
-def qr_code(part):
+def qr_code(part,persist=True):
     # flash(part.partnumber)
 
     qrfile=fileserver_path+"/Deliverables/png/"+part.partnumber+"_REV_"+part.revision+".qr.jpg"
@@ -504,37 +661,38 @@ def qr_code(part):
             # flash("couldnt earse" + qrfile)
             pass
 
-            
-    if True:
-        image_url="http://"+webserver+"/part/"
-        image_url+= part.partnumber+"_rev_"
 
-        if part.revision=="":
-                    image_url+= "%25"
-        else:
-                    image_url+=part.revision
+    image_url="http://"+webserver+"/part/"
+    image_url+= part.partnumber+"_rev_"
 
-        image_url=image_url.replace(" ","%20")
+    if part.revision=="":
+                image_url+= "%25"
+    else:
+                image_url+=part.revision
 
-        #Creating an instance of qrcode
+    image_url=image_url.replace(" ","%20")
 
-        qr = qrcode.QRCode(
-                version=1,
-                box_size=10,
-                border=5)
-        qr.add_data(image_url)
-        qr.make(fit=True)
+    #Creating an instance of qrcode
 
-        img = qr.make_image(fill='black', back_color='white')
-        tempfile=qrfile.replace('.qr.jpg','.temp.jpg')
-        tempfile=img.save(qrfile)
-        img.close()
+    qr = qrcode.QRCode(
+            version=1,
+            box_size=10,
+            border=5)
+    qr.add_data(image_url)
+    qr.make(fit=True)
 
-        return qrfile
+    img = qr.make_image(fill='black', back_color='white')
+    tempfile=qrfile.replace('.qr.jpg','.temp.jpg')
+    tempfile=img.save(qrfile)
+    img.close()
 
-    if False:
-        flash("Problem creating QR for " + part.partnumber)
-        return None
+    if persist:
+        part['qrpath']=qrfile
+        part.save()
+
+    return qrfile
+
+
 
 
 
@@ -618,7 +776,7 @@ def get_children(father_partnumber,father_rev,bom,flatbom, qty="total"):
 
 class solidbom():
     
-    def __init__(self, filein,deliverableslocation,outputfolder,toppart=None):
+    def __init__(self, bomfile, flatfile,deliverableslocation,outputfolder,toppart=None):
             
             ###Load configuration
             [self.process_conf,self.property_conf, self.variables_conf] = [process_conf , property_conf,variables_conf]
@@ -626,7 +784,7 @@ class solidbom():
         
             ### List of invalid chars, names, etc...
             ### this is to be set up from a conf file or something
-            self.file=filein
+            self.file=bomfile
             self.invalid_col_chars=['.','-',' ']
             self.renamelist={'part number':'partnumber',
                         'sw-configuration name(configuration name)':'sw_configuration',
@@ -642,9 +800,9 @@ class solidbom():
             self.col_clean_list=[]
             
             #Variable types
-            self.int_cols=['qty']
-            self.float_cols=['mass','thickness']
-            self.bool_cols=['spare_part']
+            self.int_cols=['qty'] 
+            # self.float_cols=['mass','thickness']
+            # self.bool_cols=['spare_part']
             
             #Add timestamp of bom creation
             self.timestamp=date.today().strftime('%d_%m_%Y')
@@ -655,21 +813,121 @@ class solidbom():
             self.deliverables_folder=deliverableslocation
             
             
+            
+            
             ##### Load the input file and create the dataframe
-            if filein!="":
-                file_enc=find_encoding(filein)
-                self.filedata=pd.read_csv(filein, encoding =file_enc,sep='\t', lineterminator='\r',dtype=str)
-                self.data=self.filedata.copy()
+            if bomfile!="" and flatfile!="":
+                # print(input("test"))
+                print(flatfile)
+
+                #Insert all the individual part files, it will override the properties of the previous ones
+                with open(flatfile) as f:
+                    lines=f.readlines()
+                    print(lines)
+
+                for line  in lines:  
+                    print(line)
+                    partdict=json.loads(line)
+                    print(partdict)
+
+
+                    #Add uploader user
+                    partdict['uploader']=current_user.to_dict()
+                    
+
+                    partnumber=partdict["partnumber"]
+                    revision=partdict["revision"]
+
+                    print("IMPORTED DICT - ",partnumber,revision)
+                    existing=partcol.find_one({"partnumber":partnumber,"revision":revision})
+
+                    print(existing)
+                    # flash(existing)
+
+                    if existing==None:
+                        partcol.insert_one(partdict)
+                        # print(input("test"))
+
+                    else:
+                        
+                        fieldsdrop={}
+
+                        for field in existing.keys():
+                            if field != '_id' and field!='partnumber' and field!='revision':
+                                fieldsdrop[field]=""
+                            
+                        # partcol.update ( { "_id": mongoid },{ "$unset":fieldsdrop})
+                        # partcol.update ( { "_id": mongoid },{ "$set":partdict})
+
+                        partcol.update_one({"partnumber":partnumber, "revision":revision},{ "$unset":fieldsdrop})
+                        partcol.update_one({"partnumber":partnumber, "revision":revision},{ "$set":partdict})
+                    
+                    part=mongoPart.objects(partnumber=partnumber,revision=revision)[0]
+                    part.updateFileset(persist=True)
+                    if part.pngpath:
+                        cropandbackground(part.pngpath)
+                    part.get_process_icons(persist=True)
+
+                    qr_code(part, persist=True)
+
+                    #if "pngpath" in part.keys():
+
+
+
+ 
+
+                ####BOM IMPORT STARTS ######
+                file_enc=find_encoding(bomfile)
+                self.filedata=pd.read_csv(bomfile, encoding =file_enc, sep='\t', lineterminator='\r',dtype=str)
+                
+                #Copy data to maniulate
+                self.data=self.filedata.fillna("").copy()
+                print("************** Afterimport filling nan with "" ")
+                print(self.data)
+                
+                #Rename cols, not dependent on excel config file, check for future
+                self.data=self.data.rename(columns={"ITEM NO.":"item_no","PART NUMBER":"partnumber","Approved":"approved","QTY.":"qty"}) 
+
+                #Remove leading spaces from all cols
+                for col in self.data:                    
+                    if col!='qty': self.data[col]=self.data[col].str.lstrip()
+                print("************** After removing spacess")
+                print(self.data)
+                                
+                #Drop rows with no quantity and transform the col to int
+                self.data.dropna(subset = ["qty"], inplace=True)
+                self.data["qty"]=pd.to_numeric(self.data["qty"], errors='coerce').fillna(0).astype(int)
+    
+                print("************** after as rename, drop no quantities, and to int")
+                print(self.data)
+
+                #Drop empty partnumbers rows
+                self.data=self.data[self.data.partnumber!=""]
+                print("************** after dropping no partnumber rows ")
+                print(self.data)
+
+
+                #Modify the revision entry to account for the approved status
+                #self.data.loc[self.data['event'].eq('add_rd') & self.data['environment']=="", 'environment'] = 'RD'
+
+                self.data['revision']=np.where(self.data['approved']=="",self.data['revision']+"MOD",self.data['revision'])
+                self.data.reset_index(drop=True)
+                print("************** modifiyng revision based on approved ")
+                print(self.data)
+
+
                 
                 ################################################
                 ######################################################
                 #Apply company customization 
-                self.customize()
+                #no need with mongodb
+                # self.customize()
                 
                 #Clean the entry data
-                self.clean_data()
+                # self.clean_data()
                 
                 #Get the root component definition
+                print(self.data)
                 self.root_definition()
                 
                 
@@ -677,14 +935,20 @@ class solidbom():
                 #Create bom objects
                 self.createbom()
                 
+                #Create bom objects
+                self.uploadbom()
+
+                print("**********************************")
+                print("**********************************")
+                
                 #Screening based on custom properties
-                self.property_screening()
+                # self.property_screening()
                 
                 #Find related files/deliverables
-                self.find_deliverables()
+                # self.find_deliverables()
             
                 #Dataframe to database
-                self.createdatabase()
+                #self.createdatabase()
                 
             elif toppart!=None:
                 
@@ -704,9 +968,9 @@ class solidbom():
         print("---obj in--- for " , part.partnumber)
         for pepe in object_list:
             print(pepe.partnumber)
-        bomout=solidbom ( "",deliverables_folder,folderout+"/" , toppart=part)
+        bomout=solidbom ( "","",deliverables_folder,folderout+"/" , toppart=part)
 
-        bomout.flatbom=pd.DataFrame([x.as_dict(folder=fileserver_path) for x in object_list])
+        bomout.flatbom=pd.DataFrame([x.to_dict() for x in object_list])
 
         print("---bom out --")
         for i,row in bomout.flatbom.iterrows():
@@ -715,31 +979,30 @@ class solidbom():
         print("---end --")                
         print(" ")                
             
-    def find_deliverables(self):
+    # def find_deliverables(self):
 
-        #Create the empty cols for storing the info
-        for extension in deliverables:
-            self.flatbom[extension]=False
-            self.flatbom[extension+'path']=''
+    #     #Create the empty cols for storing the info
+    #     for extension in deliverables:
+    #         self.flatbom[extension]=False
+    #         self.flatbom[extension+'path']=''
         
         
-        for i in range(len(self.flatbom)):
-            partstring=self.flatbom.at[i,'file']+"_REV_"+self.flatbom.at[i,'revision']
+    #     for i in range(len(self.flatbom)):
+    #         partstring=self.flatbom.at[i,'file']+"_REV_"+self.flatbom.at[i,'revision']
             
-            for extension in deliverables:
-                extension_folder=self.deliverables_folder+extension+"/"
-                file_string=extension_folder+partstring+"."+extension
-                if os.path.isfile(file_string): 
-                    self.flatbom.at[i,extension+'path']=file_string
-                    self.flatbom.at[i,extension]=True
+    #         for extension in deliverables:
+    #             extension_folder=self.deliverables_folder+extension+"/"
+    #             file_string=extension_folder+partstring+"."+extension
+    #             if os.path.isfile(file_string): 
+    #                 self.flatbom.at[i,extension+'path']=file_string
+    #                 self.flatbom.at[i,extension]=True
             
        
              
     def root_definition(self):
         self.partnumber=self.data.at[0,'partnumber']
         self.revision=self.data.at[0,'revision']
-        self.description=self.data.at[0,'description']
-        
+                
         self.tag=self.partnumber+"-REV-"+self.revision+"-"+self.timestamp
         
         #Set output location
@@ -748,21 +1011,24 @@ class solidbom():
         create_folder_ifnotexists(self.folderout)
         
         
-             
-    def customize(self):
+    # #no need with mongodb             
+    # def customize(self):
         
            
-        #Build the rename dictionary and rename cols
-        for prop in property_conf.keys():
-            self.renamedict[property_conf[prop]['custom_property']]=prop
+    #     #Build the rename dictionary and rename cols
+    #     # for prop in property_conf.keys():
+    #     #     self.renamedict[property_conf[prop]['custom_property']]=prop
         
-        self.data=self.data.rename(columns=self.renamedict) 
+    #     # self.data=self.data.rename(columns=self.renamedict) 
         
-        #Drop the non required properties from the dataframe
-        for col in self.data.columns:
-            if not col in [*property_conf]: 
-                self.dropcols.append(col)
-        self.data= self.data.drop(self.dropcols, axis = 1)
+    #     #Drop the non required properties from the dataframe
+    #     # for col in self.data.columns:
+    #     #     if not col in [*property_conf]: 
+    #     #         self.dropcols.append(col)
+    #     # self.data= self.data.drop(self.dropcols, axis = 1)
+
+    #     #Rename cols, see above to use the input from the excel file later on
+    #     self.data=self.data.rename(columns={"ITEM NO.":"item_no","PART NUMBER":"partnumber","Approved":"approved","QTY.":"qty"}) 
         
        
         
@@ -774,12 +1040,16 @@ class solidbom():
         ###Remove all the entries with no file related to it
         ###This will hasve to be revised if the cut list and sheet metal properties
         ### are to be counted
-        #self.data.dropna(subset = ["file"], inplace=True)
+#        self.data.dropna(subset = ["qty"], inplace=True)
 
 
         #Transform to right data type based on init lists:
         #Nan values will be filled with empty string or 0
+
+        #no need with mongodb
         for col in self.data:
+            #Remove spaces
+            self.data[col]=self.data[col].str.lstrip()
             
             if col in self.int_cols:
                 try:
@@ -789,40 +1059,51 @@ class solidbom():
                     print("forcing and replacing non valid with 0.0, check impact on output files")
                     self.data[col]=pd.to_numeric(self.data[col], errors='coerce').fillna(0).astype(int)
                 
-            elif col in self.float_cols:
-                try:
-                    self.data[col]=pd.to_numeric(self.data[col].fillna(0.0).astype(float))
-                except:
-                    print("Problems tranforming to float " , col)
-                    print("forcing and replacing non valid with 0.0, check impact on output files")
-                    self.data[col]=pd.to_numeric(self.data[col], errors='coerce').fillna(0.0).astype(float)
-            elif col in self.bool_cols:
-                self.data[col]=self.data[col].fillna(False).astype(bool)
-            else:
-                self.data[col]=self.data[col].fillna("").astype(str)
+        #     elif col in self.float_cols:
+        #         try:
+        #             self.data[col]=pd.to_numeric(self.data[col].fillna(0.0).astype(float))
+        #         except:
+        #             print("Problems tranforming to float " , col)
+        #             print("forcing and replacing non valid with 0.0, check impact on output files")
+        #             self.data[col]=pd.to_numeric(self.data[col], errors='coerce').fillna(0.0).astype(float)
+        #     elif col in self.bool_cols:
+        #         self.data[col]=self.data[col].fillna(False).astype(bool)
+        #     else:
+        #         self.data[col]=self.data[col].fillna("").astype(str)
             
+        #no need with mongodb
+        # #Remove empty rows, spaces and and dirty data
+        # self.data['revision']=self.data['revision'].astype(str)
         
-        #Remove empty rows, spaces and and dirty data
-        self.data['revision']=self.data['revision'].astype(str)
         #Remove non alfanumeric from revision and replace by "" (in case empty or funny)
         self.data.loc[self.data.revision.str.isalnum()==False,'revision']=''
         self.data.loc[self.data.revision=="nan",'revision']=''
+        self.data.loc[self.data.revision.str.isalnum()==False,'approved']=''
+        self.data.loc[self.data.revision=="nan",'approved']=''
+        
         
         #Remove leading spaces in part number
+        print(self.data)
         self.data['partnumber']=self.data['partnumber'].str.lstrip()
+
+        #Remove all the empty partnumber lines (to include in the future )
+        self.data.dropna(subset = ["partnumber"], inplace=True)
+
+        print(self.data)
         
         
+        #no need with mongodb
         #Reorder the columns for easier debugging and manipulations
-        newcols=maincols+refcols
-        for col in self.data.columns.to_list():
-            if not col in newcols: newcols.append(col)
+        # newcols=maincols+refcols
+        # for col in self.data.columns.to_list():
+        #     if not col in newcols: newcols.append(col)
         
-        self.data=self.data.reindex(columns=newcols)
+        # self.data=self.data.reindex(columns=newcols)
         
-        
+        #no need with mongodb
         #Put process, finish and treatment as lowercase
-        for prop in lowercase_properties:
-            self.data[prop]=self.data[prop].str.lower()
+        # for prop in lowercase_properties:
+        #     self.data[prop]=self.data[prop].str.lower()
       
         #Remove all non desired properties
         
@@ -844,33 +1125,33 @@ class solidbom():
     def createdatabase(self):
         
         
-        #Add parts to database
-        #The overwrite must be revised
-        for index, row in self.flatbom.iterrows():
-            database_part=Part()
-            database_part.partfromlist(row)
+        # #Add parts to database
+        # #The overwrite must be revised
+        # for index, row in self.flatbom.iterrows():
+        #     database_part=Part()
+        #     database_part.partfromlist(row)
 
-            #Find if the part is already in database
-            check_part=db.session.query(Part).filter(and_(Part.partnumber==row['partnumber'] ,
-                                                     Part.revision==row['revision'])
-                                                     ).first()
-            #Create or update qrcode
-            qr_code(database_part)
+        #     #Find if the part is already in database
+        #     check_part=db.session.query(Part).filter(and_(Part.partnumber==row['partnumber'] ,
+        #                                              Part.revision==row['revision'])
+        #                                              ).first()
+        #     #Create or update qrcode
+        #     qr_code(database_part)
 
-            #IF part exists overwrite attributes
-            if check_part==None:
-                db.session.add(database_part)
+        #     #IF part exists overwrite attributes
+        #     if check_part==None:
+        #         db.session.add(database_part)
                 
 
-            else:
-                for prop in property_conf.keys():
-                    if hasattr(database_part, prop):
-                        setattr(check_part,prop,getattr(database_part,prop))
+        #     else:
+        #         for prop in property_conf.keys():
+        #             if hasattr(database_part, prop):
+        #                 setattr(check_part,prop,getattr(database_part,prop))
                         
       
-        #Commit changes on part table
-        db.session.commit() 
-        db.session.close()
+        # #Commit changes on part table
+        # db.session.commit() 
+        # db.session.close()
         
 
 
@@ -971,6 +1252,44 @@ class solidbom():
         for index, row in self.flatbom.iterrows():
             
             self.flatbom.at[index,'totalqty']=self.data[(self.data['partnumber']==row['partnumber'] )& (self.data['revision']==row['revision'])]['branchqty'].sum()
+
+
+        print("************** BOM ")
+        print (self.bom)
+        print("************** FLATBOM ")
+        print (self.flatbom)
+        print("************** DATA AFTER bOM ")
+        print(self.data)
+
+
+    def uploadbom(self):
+
+        for index, row in self.bom.iterrows():
+
+            fatherPN=row['father_partnumber']
+            childPN=row['child_partnumber']
+            fatherREV=row['father_revision']
+            childREV=row['child_revision']
+            qty=row['qty']
+
+            father=partcol.find_one({"partnumber":fatherPN,"revision":fatherREV})   
+            child=partcol.find_one({"partnumber":childPN,"revision":childREV})
+
+            # father=partcol.find_one({"partnumber":fatherPN})   
+            # child=partcol.find_one({"partnumber":childPN})
+
+            # print("*"+fatherPN+"*","*"+ fatherREV+"*")
+            # print("*"+childPN+"*","*"+ childREV+"*")
+
+            # print(father['partnumber'], child['partnumber'])
+            # print(father['partnumber'], child['partnumber'])
+            
+            if father!=None and child!=None:
+                if "children" in father.keys():
+                    partcol.update_one({"partnumber":fatherPN, "revision":fatherREV},{ "$push":{'children': child['_id'],'childrenqty': qty}})
+                else:
+                    partcol.update_one({"partnumber":fatherPN, "revision":fatherREV},{ "$set":{'children':[ child['_id']],'childrenqty':[qty]}})
+            
         
 
         

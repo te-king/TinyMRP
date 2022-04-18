@@ -112,6 +112,20 @@ class User(UserMixin, db.Model):
                                 cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
+
+    def to_dict(self):
+        userdict={}
+
+        userdict['id']=self.id
+        userdict['username']=self.username
+        userdict['email']=self.email
+        userdict['role_id']=self.role_id
+        userdict['name']=self.name
+        userdict['gravatar']=self.gravatar(size=40)
+
+        return userdict
+
+
     @staticmethod
     def add_self_follows():
         for user in User.query.all():

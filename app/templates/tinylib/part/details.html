@@ -9,6 +9,13 @@
 
 <br>
 
+
+    <img class="img-rounded profile-thumbnail" src="{{ part.uploader.gravatar }}">
+<p> {{part['png_dpath']}}{{part['pngpath']}}</p>
+
+<br>
+
+
 <div class="row">
     <div class="col-sm-4">
         <h4 class="card-title">{{part['partnumber']}} REV {{part['revision']}}
@@ -37,7 +44,7 @@
         <p>
             <br>
 
-            {% for iconpath in part.process_icons %}
+            {% for iconpath in part['process_icons'] %}
             <img src="{{url_for('static', filename=iconpath)}}" align="left" hspace="20" style="width: 2.5rem;">
             {% endfor %}
 
@@ -303,33 +310,33 @@
 
                         {% if flatbom %}
 
-                        {% if part.revision!=''%}
-                        <a href="{{ url_for('tinylib.flatbom',partnumber=part.partnumber,revision=part.revision, components_only="YES") }}" class="btn btn-primary btn-sm">
+                        {% if part['revision']!=''%}
+                        <a href="{{ url_for('tinylib.flatbom',partnumber=part['partnumber'],revision=part['revision'], components_only="YES") }}" class="btn btn-primary btn-sm">
                             EXCEL LIST - FULL BOM - COMPONENTS ONLY
                         </a>
                         
                         <hr />
-                        <a href="{{ url_for('tinylib.flatbom',partnumber=part.partnumber,revision=part.revision,components_only="NO") }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('tinylib.flatbom',partnumber=part['partnumber'],revision=part['revision'],components_only="NO") }}" class="btn btn-primary btn-sm">
                             EXCEL LIST - FULL BOM
                         </a>
                         <hr />
-                        <a href="{{ url_for('tinylib.drawingpack',partnumber=part.partnumber,revision=part.revision, components_only="NO") }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('tinylib.drawingpack',partnumber=part['partnumber'],revision=part['revision'], components_only="NO") }}" class="btn btn-primary btn-sm">
                             FULL DRAWING PACK 
                         </a>
 
 
                         {% else %}
 
-                        <a href="{{ url_for('tinylib.flatbom',partnumber=part.partnumber,revision="%25", components_only="YES") }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('tinylib.flatbom',partnumber=part['partnumber'],revision="%25", components_only="YES") }}" class="btn btn-primary btn-sm">
                             EXCEL LIST - FULL BOM - COMPONENTS ONLY
                         </a>
                         <hr />
 
-                        <a href="{{ url_for('tinylib.flatbom',partnumber=part.partnumber,revision="%25", components_only="NO") }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('tinylib.flatbom',partnumber=part['partnumber'],revision="%25", components_only="NO") }}" class="btn btn-primary btn-sm">
                             EXCEL LIST - FULL BOM
                         </a>
                         <hr />
-                        <a href="{{ url_for('tinylib.drawingpack',partnumber=part.partnumber,revision="%25", components_only="NO") }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('tinylib.drawingpack',partnumber=part['partnumber'],revision="%25", components_only="NO") }}" class="btn btn-primary btn-sm">
                             FULL DRAWING PACK 
                         </a>
                         {% endif %}
@@ -344,12 +351,12 @@
 
                         {% else %}
 
-                        {% if part.revision%}
-                        <a href="{{ url_for('tinylib.partnumber',partnumber=part.partnumber,revision=part.revision,detail="full") }}" class="btn btn-primary btn-sm">
+                        {% if part['revision']%}
+                        <a href="{{ url_for('tinylib.partnumber',partnumber=part['partnumber'],revision=part['revision'],detail="full") }}" class="btn btn-primary btn-sm">
                             LOAD FULL TREE - LONG ASSEMBLIES MIGHT TAKE A WHILE TO LOAD
                         </a>
                         {% else %}
-                        <a href="{{ url_for('tinylib.partnumber',partnumber=part.partnumber,revision="%25",detail="full") }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('tinylib.partnumber',partnumber=part['partnumber'],revision="%25",detail="full") }}" class="btn btn-primary btn-sm">
                             LOAD FULL TREE - LONG ASSEMBLIES MIGHT TAKE A WHILE TO LOAD
                         </a>
 
@@ -365,12 +372,12 @@
 
                         {% endif %}
 
-                        {% if part.revision%}
-        <a href="{{ url_for('tinylib.process_label_list',partnumber=part.partnumber,revision=part.revision,processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+                        {% if part['revision']%}
+        <a href="{{ url_for('tinylib.process_label_list',partnumber=part['partnumber'],revision=part['revision'],processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
             Print top level labels
         </a>
         {% else %}
-        <a href="{{ url_for('tinylib.process_label_list',partnumber=part.partnumber,revision="%25",processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+        <a href="{{ url_for('tinylib.process_label_list',partnumber=part['partnumber'],revision="%25",processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
             Print top level labels
         </a>
 
@@ -379,12 +386,12 @@
 
         {% if flatbom %}
         
-        {% if part.revision%}
-        <a href="{{ url_for('tinylib.process_label_list',partnumber=part.partnumber,revision=part.revision,processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+        {% if part['revision']%}
+        <a href="{{ url_for('tinylib.process_label_list',partnumber=part['partnumber'],revision=part['revision'],processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
             Print FULL BOM labels
         </a>
         {% else %}
-        <a href="{{ url_for('tinylib.process_label_list',partnumber=part.partnumber,revision="%25",processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+        <a href="{{ url_for('tinylib.process_label_list',partnumber=part['partnumber'],revision="%25",processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
             Print FULL BOM labels
         </a>
 
@@ -398,15 +405,15 @@
     </div>
 </div>
 
-    {% if part.png_d %}
+ {% if part['png_dpath'] %}
     <div class="row">
         <div class="col-sm-12">
 
 
-            {% if part.revision%}
-            <a href="{{ url_for('tinylib.pdfwithdescription',partnumber=part.partnumber,revision=part.revision) }}" > <img src="http://{{part['png_dpath']}}" style="width: 100%;"> </a>
+            {% if part['revision']%}
+            <a href="{{ url_for('tinylib.pdfwithdescription',partnumber=part['partnumber'],revision=part['revision']) }}" > <img src="http://{{part['png_dpath']}}" style="width: 100%;"> </a>
             {% else %}
-            <a href="{{ url_for('tinylib.pdfwithdescription',partnumber=part.partnumber,revision="%25") }}" > <img src="http://{{part['png_dpath']}}" style="width: 100%;"> </a>
+            <a href="{{ url_for('tinylib.pdfwithdescription',partnumber=part['partnumber'],revision="%25") }}" > <img src="http://{{part['png_dpath']}}" style="width: 100%;"> </a>
             {% endif %}
         </div>
     </div>
@@ -427,12 +434,12 @@
 
 
 
-    {% if part.revision%}
-    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision=part.revision,processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+    {% if part['revision']%}
+    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision=part['revision'],processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
         PDF Visual summary
     </a>
     {% else %}
-    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision="%25",processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision="%25",processin="toplevel",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
         PDF Visual summary
     </a>
 
@@ -441,12 +448,12 @@
 
     {% if flatbom %}
     
-    {% if part.revision%}
-    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision=part.revision,processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+    {% if part['revision']%}
+    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision=part['revision'],processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
         FULL FLATBOM PDF Visual summary
     </a>
     {% else %}
-    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision="%25",processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision="%25",processin="all",components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
         FULL FLATBOM PDF Visual summary
     </a>
 
@@ -474,9 +481,9 @@ img {
                     <div >
                         <p style="color: red;">X {{ item['qty'] }} 
                         {% if item['revision']  == "": %}
-                        <a class="btn btn-primary" href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision="%") }}" style="background-color:rgb({{item['process_colors'][0]}});"> {{ item['partnumber'] }} </a>
+                        <a class="btn btn-primary" href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision="%") }}" style="background-color:rgb({{item['process_colors'][0]}});"> {{ item['partnumber'] }} </a>
                         {% else %}
-                        <a class="btn btn-primary" href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision=item.revision) }}" style="background-color:rgb({{item['process_colors'][0]}});">{{ item['partnumber'] }}  </a>
+                        <a class="btn btn-primary" href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision=item['revision']) }}" style="background-color:rgb({{item['process_colors'][0]}});">{{ item['partnumber'] }}  </a>
                         {% endif %}
                         <!-- <p  style="color: rgb(0, 0, 0); font-size:11px; width: 60%;"> {{ item['description'] }}  </p> -->
                         
@@ -523,17 +530,17 @@ img {
 
                     <td>
                         {% if item['revision']  == "": %}
-                        <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision="%") }}">{{ item['partnumber'] }}  </a>
+                        <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision="%") }}">{{ item['partnumber'] }}  </a>
                         {% else %}
-                        <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision=item.revision) }}">{{ item['partnumber'] }}  </a>
+                        <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision=item['revision']) }}">{{ item['partnumber'] }}  </a>
                         {% endif %}
                     </td>
 
-                    <td>{{ item.description }}</td>
-                    <td>{{ item.qty }}</td>
-                    <td>{{ item.material }}</td>
-                    <td>{{ item.finish }}</td>
-                    <td>{{ item.treatment }}</td>
+                    <td>{{ item['description'] }}</td>
+                    <td>{{ item['qty'] }}</td>
+                    <td>{{ item['material'] }}</td>
+                    <td>{{ item['finish'] }}</td>
+                    <td>{{ item['treatment'] }}</td>
 
                 </tr>
                 {% endfor %}
@@ -580,16 +587,16 @@ img {
 
                     <td>
                         {% if item['revision']  == "": %}
-                        <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision="%") }}">{{ item['partnumber'] }}  </a>
+                        <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision="%") }}">{{ item['partnumber'] }}  </a>
                         {% else %}
-                        <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision=item.revision) }}">{{ item['partnumber'] }}  </a>
+                        <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision=item['revision']) }}">{{ item['partnumber'] }}  </a>
                         {% endif %}
                     </td>
 
-                    <td>{{ item.description }}</td>
-                    <td>{{ item.revision }}</td>
+                    <td>{{ item['description'] }}</td>
+                    <td>{{ item['revision'] }}</td>
 
-                    <td>{{ item.qty }}</td>
+                    <td>{{ item['qty'] }}</td>
 
                     {% endfor %}
             </tbody>
@@ -688,24 +695,24 @@ img {
                     {% endif %}
                     
                     
-                            {% if part.revision!=''%}       
-                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part.partnumber,revision=part.revision,processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm">
+                            {% if part['revision']!=''%}       
+                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part['partnumber'],revision=part['revision'],processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm">
                                         {{pro.process}} drawing pack as main process  </a>                    
-                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision=part.revision,processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision=part['revision'],processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
                                         {{pro.process}} as main process visual summary</a>        <br /> <br />
-                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part.partnumber,revision=part.revision,processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm">
+                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part['partnumber'],revision=part['revision'],processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm">
                                         Drawing pack including any part that has {{pro.process}} </a>
-                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision=part.revision,processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm" style="float: right;">
+                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision=part['revision'],processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm" style="float: right;">
                                         Visual summary including any part that has {{pro.process}}  </a>          <br />
 
                                 {% else %}
-                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part.partnumber,revision="%25",processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm">
+                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part['partnumber'],revision="%25",processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm">
                                         {{pro.process}} drawing pack as main process        </a>
-                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision="%25",processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
+                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision="%25",processin=pro.process,components_only="YES") }}" class="btn btn-primary btn-sm" style="float: right;">
                                         {{pro.process}} as main process visual summary        </a>                    <br />                    <br />
-                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part.partnumber,revision="%25",processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm">
+                                    <a href="{{ url_for('tinylib.process_docpack',partnumber=part['partnumber'],revision="%25",processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm">
                                         Drawing pack including any part that has {{pro.process}}                   </a>
-                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part.partnumber,revision="%25",processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm" style="float: right;">
+                                    <a href="{{ url_for('tinylib.process_visuallist',partnumber=part['partnumber'],revision="%25",processin=pro.process,components_only="NO") }}" class="btn btn-primary btn-sm" style="float: right;">
                                         Visual summary including any part that has {{pro.process}}       </a>        <br />
 
                                 {% endif %}
@@ -715,11 +722,11 @@ img {
 
                             {%if pro.process=="welding"%}
                                 <br />
-                                {% if part.revision!=''%}
-                                    <a href="{{ url_for('tinylib.fabrication',partnumber=part.partnumber,revision=part.revision) }}" class="btn btn-primary btn-sm" style="float: right;">
+                                {% if part['revision']!=''%}
+                                    <a href="{{ url_for('tinylib.fabrication',partnumber=part['partnumber'],revision=part['revision']) }}" class="btn btn-primary btn-sm" style="float: right;">
                                         Full fabrication pack (includes lasercut, folding and intermediate fabrication)  </a>
                                 {% else %}
-                                    <a href="{{ url_for('tinylib.fabrication',partnumber=part.partnumber,revision="%25") }}" class="btn btn-primary btn-sm" style="float: right;">Full fabrication pack (includes lasercut, folding and intermediate fabrication)</a>
+                                    <a href="{{ url_for('tinylib.fabrication',partnumber=part['partnumber'],revision="%25") }}" class="btn btn-primary btn-sm" style="float: right;">Full fabrication pack (includes lasercut, folding and intermediate fabrication)</a>
                                 {% endif %}
                             {% endif %}
 
@@ -756,8 +763,8 @@ img {
 
 
                                     <tbody>
-                                        {% for item in flatbom  if  item.mainprocess==pro.process %}
-                                        <!--and not (pro.process=="lasercut" and (item.process=="folding" or item.process2=="folding" or item.process3=="folding")) %}-->
+                                        {% for item in flatbom  if  item['mainprocess']==pro.process %}
+                                        <!--and not (pro.process=="lasercut" and (item['process']=="folding" or item['process2']=="folding" or item['process3']=="folding")) %}-->
                                         <tr>
                                             <th scope="row">{{ loop.index }} </th>
 
@@ -771,29 +778,29 @@ img {
 
                                             <td>
                                                 {% if item['revision']  == "": %}
-                                                <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision="%") }}">{{ item['partnumber'] }}  </a>
+                                                <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision="%") }}">{{ item['partnumber'] }}  </a>
                                                 {% else %}
-                                                <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision=item.revision) }}">{{ item['partnumber'] }}  </a>
+                                                <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision=item['revision']) }}">{{ item['partnumber'] }}  </a>
                                                 {% endif %}
                                             </td>
 
-                                            <td>{{ item.description }}</td>
-                                            <td> <center> {{ item.revision }} </center> </td>
+                                            <td>{{ item['description'] }}</td>
+                                            <td> <center> {{ item['revision'] }} </center> </td>
 
 
 
-                                            <td> <center> {{ item.qty }} </center> </td>
+                                            <td> <center> {{ item['qty'] }} </center> </td>
                                             {% if pro.process != "purchase" %}
-                                            <td> <center> {{ item.approved }} </center> </td>
-                                            <td>{{ item.finish }}</td>
+                                            <td> <center> {{ item['approved'] }} </center> </td>
+                                            <td>{{ item['finish'] }}</td>
                                             {% if pro.process == "paint" %}
-                                            <td>{{ item.colour }}</td>
+                                            <td>{{ item['colour'] }}</td>
                                             {% endif %}
 
                                             {% endif %}
                                             {% if pro.process == "purchase" %}
-                                            <td>{{ item.oem }}</td>
-                                            <td>{{ item.supplier }}</td>
+                                            <td>{{ item['oem'] }}</td>
+                                            <td>{{ item['supplier'] }}</td>
 
                                             <td>
                                                 {% if item['datasheet_available'] %}
@@ -811,7 +818,7 @@ img {
                                                 {% endif %}
                                             </td>
 
-                                            <td>{{ item.category }}</td>
+                                            <td>{{ item['category'] }}</td>
                                             {% endif %}
                                             {% endfor %}
                                     </tbody>
@@ -845,7 +852,7 @@ img {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for item in flatbom if (item.approved.replace(" ","").isalnum()==False and  item.process!="purchase" and item.process!="hardware")  %}
+                                        {% for item in flatbom if ( (not  "purchase" in  item['process']) and (not  "hardware" in  item['process']) )%}
 
                                         <tr>
                                             <th scope="row">{{ loop.index }} </th>
@@ -860,22 +867,22 @@ img {
 
                                             <td>
                                                 {% if item['revision']  == "": %}
-                                                <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision="%") }}">{{ item['partnumber'] }}  </a>
+                                                <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision="%") }}">{{ item['partnumber'] }}  </a>
                                                 {% else %}
-                                                <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision=item.revision) }}">{{ item['partnumber'] }}  </a>
+                                                <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision=item['revision']) }}">{{ item['partnumber'] }}  </a>
                                                 {% endif %}
                                             </td>
 
-                                            <td>{{ item.description }}</td>
-                                            <td>{{ item.approved }}</td>
-                                            <td>{{ item.process }}</td>
-                                            <td>{{ item.process2 }}</td>
-                                            <td>{{ item.process3 }}</td>
-                                            <td> <center> {{ item.revision }} </center> </td>
+                                            <td>{{ item['description'] }}</td>
+                                            <td>{{ item['approved'] }}</td>
+                                            <td>{{ item['process'] }}</td>
+                                            <td>{{ item['process2'] }}</td>
+                                            <td>{{ item['process3'] }}</td>
+                                            <td> <center> {{ item['revision'] }} </center> </td>
 
 
 
-                                            <td> <center> {{ item.qty }} </center> </td>
+                                            <td> <center> {{ item['qty'] }} </center> </td>
 
                                             {% endfor %}
                                         </tr>
@@ -907,8 +914,8 @@ img {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for item in flatbom if (not item.process in processes) or (item.process2 and not item.process2 in processes) or (item.process3 and not item.process3 in processes) %}
-                                        <!--{% if  not item.process2 in processes %}-->
+                                        {% for item in flatbom if (not item['process'] in processes) or (item['process2'] and not item['process2'] in processes) or (item['process3'] and not item['process3'] in processes) %}
+                                        <!--{% if  not item['process2'] in processes %}-->
                                         <tr>
                                             <th scope="row">{{ loop.index }} </th>
 
@@ -922,21 +929,21 @@ img {
 
                                             <td>
                                                 {% if item['revision']  == "": %}
-                                                <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision="%") }}">{{ item['partnumber'] }}  </a>
+                                                <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision="%") }}">{{ item['partnumber'] }}  </a>
                                                 {% else %}
-                                                <a href="{{ url_for('tinylib.details',partnumber=item.partnumber,revision=item.revision) }}">{{ item['partnumber'] }}  </a>
+                                                <a href="{{ url_for('tinylib.details',partnumber=item['partnumber'],revision=item['revision']) }}">{{ item['partnumber'] }}  </a>
                                                 {% endif %}
                                             </td>
 
-                                            <td>{{ item.description }}</td>
-                                            <td>{{ item.process }}</td>
-                                            <td>{{ item.process2 }}</td>
-                                            <td>{{ item.process3 }}</td>
-                                            <td> <center> {{ item.revision }} </center> </td>
+                                            <td>{{ item['description'] }}</td>
+                                            <td>{{ item['process'] }}</td>
+                                            <td>{{ item['process2'] }}</td>
+                                            <td>{{ item['process3'] }}</td>
+                                            <td> <center> {{ item['revision'] }} </center> </td>
 
 
 
-                                            <td> <center> {{ item.qty }} </center> </td>
+                                            <td> <center> {{ item['qty'] }} </center> </td>
                                             <!--{% endif %}-->
                                             {% endfor %}
                                         </tr>
