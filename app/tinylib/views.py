@@ -27,7 +27,7 @@ from config import config as config_set
 config=config_set['tinymrp'].__dict__
 
 
-#print(config)
+#orint(config)
 
 folderout=config['FOLDEROUT']
 fileserver_path=config['FILESERVER_PATH']
@@ -93,7 +93,7 @@ from datetime import datetime, date
 
 
 #Mongo engine stuff
-from .models import mongoPart
+from .models import mongoPart, mongoJob, mongoSupplier, mongoOrder
 from flask_mongoengine.wtf import model_form
 import pymongo
 from mongoengine import *
@@ -117,7 +117,7 @@ def get():
 
         # for part in partquery:
         #     parts.append(part)
-        #     print(part)
+        #     #print(part)
 
 
         # return render_template('mongo/sandbox.html',parts=parts,form=form)
@@ -175,10 +175,9 @@ def mongopartdata():
 
     #Global search filter
     search = request.args.get('search[value]')
-    # search="bean"
-
-    if search:
-        
+    if search=="" or not search:
+        pass
+    else:
         allparts=allparts(Q(description__icontains=search) | Q( partnumber__icontains=search))
 
 
@@ -215,7 +214,7 @@ def mongopartdata():
 
     #All filtered parts
     total_filtered = allparts.count()
-    print("All parts ", total_filtered)
+    #print("All parts ", total_filtered)
     allparts = allparts.order_by("-id")
 
 
@@ -243,7 +242,7 @@ def mongopartdata():
         i += 1
     if len(order)>0:
         # query = query.order_by(*order)
-        print(order)
+        #print(order)
         allparts = allparts.order_by(*order)
 
     
@@ -251,17 +250,17 @@ def mongopartdata():
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
 
-    # print("Start ",start," - length ",length)
+    # #print("Start ",start," - length ",length)
 
     # if start==None: start=20
     # if length==None: length=50
 
-    print("Start ",start," - length ",length)
+    #print("Start ",start," - length ",length)
 
     # query = query.offset(start).limit(length)
     allparts=allparts.skip(start).limit(length)
 
-    print("Paginated parts ", allparts.count())
+    #print("Paginated parts ", allparts.count())
 
     #check files and save (to polish redundant checks)
     for part in allparts:
@@ -274,21 +273,22 @@ def mongopartdata():
     webdata=[]
     for part in allparts:
         
-        if part.revision=="":
-            urllink=url_for('tinylib.partnumber',partnumber=part.partnumber,revision="%25",detail="quick")
-            # print(urllink)
-        else:
-            
-            urllink=url_for('tinylib.partnumber',partnumber=part.partnumber,revision=part.revision,detail="quick")
-            # print("the part link" , urllink)
+        if part.partnumber != None:
+            if part.revision=="":
+                urllink=url_for('tinylib.partnumber',partnumber=part.partnumber,revision="%25",detail="quick")
+                # #print(urllink)
+            else:
+                print(part.partnumber)
+                urllink=url_for('tinylib.partnumber',partnumber=part.partnumber,revision=part.revision,detail="quick")
+                # #print("the part link" , urllink)
 
-        try:
-            part['pngpath']= '<a href="'+ urllink +  '">' + """<img src='""" + "http://"+part.pngpath + """' width=auto height=30rm></a>"""
-            # print("the image link" , part['pngpath'])
-        except:
-            pass
-        
-        webdata.append(part.to_dict())
+            try:
+                part['pngpath']= '<a href="'+ urllink +  '">' + """<img src='""" + "http://"+part.pngpath + """' width=auto height=30rm></a>"""
+                # #print("the image link" , part['pngpath'])
+            except:
+                pass
+            
+            webdata.append(part.to_dict())
         
  
 
@@ -297,8 +297,8 @@ def mongopartdata():
         'recordsTotal': allparts.count(),
         'draw': request.args.get('draw', type=int),
     }
-    # print(tabledata)
-    # print(jsonify(tabledata))
+    # #print(tabledata)
+    # #print(jsonify(tabledata))
     return jsonify(tabledata)
 
 
@@ -381,7 +381,7 @@ def partdata():
         'draw': request.args.get('draw', type=int),
     }
 
-    print(tabledata)
+    #print(tabledata)
     # response
     return jsonify(tabledata)
     
@@ -476,17 +476,18 @@ def details(partnumber,revision=""):
 @login_required
 #@tinylib.route('/part/<partnumber>_rev_<revision>/page/<int:page>', methods=('GET', 'POST'))
 def partnumber(partnumber,revision="",detail="full",page=1):
-    print("PARTNUMBER - ",partnumber,"REVISION - ",revision)
+    treedata={}
+    #print("PARTNUMBER - ",partnumber,"REVISION - ",revision)
     
-    try:
-        print(partnumber,revision)
-        mongopart=mongoPart.objects(partnumber=partnumber,revision=revision).first()
-        print(mongopart)
-        print(mongopart.treeDict())
-        treedata=json.dumps(mongopart.treeDict())
-    except:
-        mongopart=mongoPart.objects(partnumber=partnumber,revision="").first()
-        treedata=json.dumps(mongopart.treeDict())
+    # try:
+    #     #print(partnumber,revision)
+    #     mongopart=mongoPart.objects(partnumber=partnumber,revision=revision).first()
+    #     #print(mongopart)
+    #     #print(mongopart.treeDict())
+    #     treedata=json.dumps(mongopart.treeDict())
+    # except:
+    #     mongopart=mongoPart.objects(partnumber=partnumber,revision="").first()
+    #     treedata=json.dumps(mongopart.treeDict())
 
     
     
@@ -505,11 +506,13 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
     if request.method == 'GET':
 
-        #print(partnumber)
-        print("-",revision)
+        #orint(partnumber)
+        #print("-",revision)
         
 
         part=mongoPart.objects(partnumber=partnumber,revision=rev)[0]
+
+        treedata=json.dumps(part.treeDict())
         #part=Part.query.filter_by(partnumber=partnumber,revision=rev).order_by(Part.process.desc()).first()
         # if part==None:
         #     part=Part.query.filter_by(partnumber=partnumber).order_by(Part.revision.desc()).first()
@@ -526,8 +529,8 @@ def partnumber(partnumber,revision="",detail="full",page=1):
         #part.getweblinks()
         part.get_process_icons()
 
-        print(part['process_colors'])
-        print(part['process_icons'])
+        #print(part['process_colors'])
+        #print(part['process_icons'])
 
 
 
@@ -547,12 +550,12 @@ def partnumber(partnumber,revision="",detail="full",page=1):
             #Toget the full flat bom
             flatbom=part.get_components()
 
-            print("original flatbom length", len(flatbom))
+            #print("original flatbom length", len(flatbom))
             #To limit the amount of parts displayed - no need anymore with the full details new page
             #if len(flatbom)>350 :
             #    flatbom=[x for x in flatbom if len(x.children)>0 ]
             #    #flatbom=[x for x in flatbom if x.hasProcess("assembly") or x.hasProcess("welding") or x.hasProcess("paint") ]
-            print("after reduction for too many parts", len(flatbom))
+            #print("after reduction for too many parts", len(flatbom))
 
 
       
@@ -596,11 +599,11 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
             # #PRint the composed process for checking
             # for comp in composedprocesses:
-            #         print(comp)
+            #         #print(comp)
 
             #  #PRint the composed process for checking
             # for icon in composedicons:
-            #         print("icon ",icon)
+            #         #print("icon ",icon)
         else:
             flatbom=""
         
@@ -617,7 +620,7 @@ def partnumber(partnumber,revision="",detail="full",page=1):
                 for process in process_conf.keys():
                     if parto.hasProcess(process) and  process not in needed_processes :
                         needed_processes.append(process)
-        print(needed_processes)
+        #print(needed_processes)
 
 
 
@@ -626,15 +629,15 @@ def partnumber(partnumber,revision="",detail="full",page=1):
 
         parents=part.parents_with_qty()
 
-        print(parents)
+        #print(parents)
 
         for parto in parents:
             #parto.updatefilespath(webfileserver)
             parto.updateFileset(web=True)
             parto.get_process_icons()
-        for parto in parents:
-            print(part['process_colors'])
-            print(part['process_icons'])
+        #for parto in parents:
+            #print(part['process_colors'])
+            #print(part['process_icons'])
 
         # comments=[]
         # # for comment in part.comments:
@@ -655,7 +658,7 @@ def partnumber(partnumber,revision="",detail="full",page=1):
         legend=[ {'process':process,'icon':'images/'+icon,'color':color} for  (process,icon,color) in zip(needed_processes,icons,colors) ]
 
         part.updateFileset(web=True,persist=True)
-        print("THIS IS THEs ", part.to_dict())
+        #print("THIS IS THEs ", part.to_dict())
 
         
 
@@ -757,6 +760,8 @@ def upload_file():
         bomfile=bomfolder+"/"+filestring+"_TREEBOM.txt"
         flatfile=bomfolder+"/"+filestring+"_FLATBOM.txt"
 
+        
+
 
         #Remove original file
         try:
@@ -767,12 +772,12 @@ def upload_file():
         #Create the SOLIDBOM
         bom_in=solidbom(bomfile,flatfile,deliverables_folder,fileserver_path+folderout)
     
-        print("**********************************")
-        print(bom_in.partnumber)
-        print("**********************************")
+        #print("**********************************")
+        #print(bom_in.partnumber)
+        #print("**********************************")
         session['search']=bom_in.partnumber
 
-        # print(input("error"))
+        # #print(input("error"))
         # return render_template('tinylib/upload.html',upload=False, searchform=searchform , bomform=bomform)
         return redirect(url_for('tinylib.search',searchstring=bom_in.partnumber,page=1 ,searchform=searchform))
 
@@ -819,7 +824,7 @@ def excelcompile():
         page=1
         search ="%"+ searchform.search.data+"%"
         searchstring=searchform.search.data
-        print(search)
+        #print(search)
         error = None
 
         if not search:
@@ -828,7 +833,7 @@ def excelcompile():
         if error is not None:
             flash(error)
         else:
-            print(search,search)
+            #print(search,search)
 
             allparts=Part.query.filter(or_(Part.description.like(search),
                                         Part.partnumber.like(search))).order_by(Part.partnumber.desc())
@@ -844,7 +849,7 @@ def excelcompile():
             for part in parts:
                 part.updatefilespath(webfileserver, png_thumbnail=True)
             session['search']=searchstring
-            print(search,search,search)
+            #print(search,search,search)
             return redirect(url_for('tinylib.search',searchstring=searchstring,page=1 ,searchform=searchform))
 
 
@@ -854,12 +859,12 @@ def excelcompile():
         f = secure_filename(excelform.file.data.filename)
         
                
-        print("in post")
+        #print("in post")
         # f = request.files['file']
         folder= os.path.dirname(os.path.abspath(__file__))
         
         targetfile= folder+ "/" + config['UPLOAD_PATH']+ "/" + secure_filename(f)
-        print(targetfile)
+        #print(targetfile)
         
         
         try:
@@ -868,9 +873,9 @@ def excelcompile():
             pass
         excelform.file.data.save(targetfile)
         
-        print(folderout)
+        #print(folderout)
         flatbom,listofobjects=loadexcelcompilelist(targetfile,export_objects=True)
-        print(flatbom)
+        #print(flatbom)
 
         
 
@@ -896,11 +901,11 @@ def excelcompile():
 
         #Compile all in a zip file
         zipfile= Path(shutil.make_archive(Path(summaryfolder), 'zip', Path(summaryfolder)))
-        print("original " ,zipfile)
+        #print("original " ,zipfile)
 
         path, filename = os.path.split(zipfile)
         finalfile=fileserver_path+deliverables_folder+"temp/"+filename
-        print("final " ,finalfile)
+        #print("final " ,finalfile)
 
 
         shutil.copy2(Path(zipfile),Path(finalfile) )
@@ -934,11 +939,7 @@ def excelcompile():
 def drawingpack(partnumber,revision,components_only="NO"):
     
     components_only=request.args.get('components_only',default = '*', type = str)
-    print(components_only)
-    print(components_only)
-    print(components_only)
-    print(components_only)
-    print(components_only)
+
 
     if components_only=="YES":
         components_only=True
@@ -967,7 +968,7 @@ def drawingpack(partnumber,revision,components_only="NO"):
     
 
     bom_solidbomobject=solidbom.solidbom_from_flatbom(flatbom,part)
-    print(bom_solidbomobject.tag)
+    #print(bom_solidbomobject.tag)
 
 
     summaryfolder=os.getcwd()+"/temp/"+bom_solidbomobject.tag+"/"
@@ -976,9 +977,9 @@ def drawingpack(partnumber,revision,components_only="NO"):
 
 
 
-    print(bom_solidbomobject.folderout)
+    #print(bom_solidbomobject.folderout)
     pdf_pack=IndexPDF(bom_solidbomobject,outputfolder=summaryfolder,sort=False)
-    print(pdf_pack)
+    #print(pdf_pack)
 
     path, filename = os.path.split(pdf_pack)
     finalfile=fileserver_path+deliverables_folder+"temp/"+filename
@@ -987,8 +988,8 @@ def drawingpack(partnumber,revision,components_only="NO"):
     shutil.move(pdf_pack,finalfile )
 
     finalfile=finalfile.replace(fileserver_path,webfileserver)
-    print(finalfile)
-    print("changes?")
+    #print(finalfile)
+    #print("changes?")
     
 
     return redirect("http://"+finalfile)
@@ -1004,7 +1005,7 @@ def fabrication(partnumber,revision):
 
     #Get the top part level object
     part_in=Part.query.filter_by(partnumber=partnumber,revision=rev).first()
-    print(part_in)
+    #print(part_in)
     #Set qty to one to compute the rest and updatepaths
     part_in.qty=1
     part_in.updatefilespath(fileserver_path,local=True)
@@ -1081,9 +1082,9 @@ def fabrication(partnumber,revision):
         #Crete excelist
         excel_list=bom_to_excel(com_bom.flatbom,com_bom.folderout,title=bomtitle,qty="qty")
 
-        print(com_bom.folderout)
+        #print(com_bom.folderout)
         com_dwgpack=IndexPDF(com_bom,outputfolder=com_bom.folderout,sort=False)
-        print(com_dwgpack)
+        #print(com_dwgpack)
 
 
 
@@ -1091,11 +1092,11 @@ def fabrication(partnumber,revision):
 
 
     zipfile= Path(shutil.make_archive(Path(summaryfolder), 'zip', Path(summaryfolder)))
-    print("original " ,zipfile)
+    #print("original " ,zipfile)
 
     path, filename = os.path.split(zipfile)
     finalfile=fileserver_path+deliverables_folder+"temp/"+filename
-    print("final " ,finalfile)
+    #print("final " ,finalfile)
 
 
     shutil.copy2(Path(zipfile),Path(finalfile) )
@@ -1125,7 +1126,7 @@ def process_docpack(partnumber,revision,processin,components_only):
 
     #Get the top part level object
     part_in=Part.query.filter_by(partnumber=partnumber,revision=rev).first()
-    print(part_in)
+    #print(part_in)
     #Set qty to one to compute the rest and updatepaths
     part_in.qty=1
     part_in.updatefilespath(fileserver_path,local=True)
@@ -1192,11 +1193,11 @@ def process_docpack(partnumber,revision,processin,components_only):
 
     #Compile all in a zip file
     zipfile= Path(shutil.make_archive(Path(summaryfolder), 'zip', Path(summaryfolder)))
-    print("original " ,zipfile)
+    #print("original " ,zipfile)
 
     path, filename = os.path.split(zipfile)
     finalfile=fileserver_path+deliverables_folder+"temp/"+filename
-    print("final " ,finalfile)
+    #print("final " ,finalfile)
 
 
     shutil.copy2(Path(zipfile),Path(finalfile) )
@@ -1234,7 +1235,7 @@ def process_visuallist(partnumber,revision,processin,components_only):
     part_in=mongoPart.objects(partnumber=partnumber,revision=rev).first()
 
 
-    print(part_in)
+    #print(part_in)
     #Set qty to one to compute the rest and updatepaths
     part_in['qty']=1
     part_in.updateFileset(fileserver_path)
@@ -1310,7 +1311,7 @@ def process_visuallist(partnumber,revision,processin,components_only):
     #Create the web link 
     weblink="http://"+finalfile.replace(fileserver_path,webfileserver)
 
-    print(weblink)
+    #print(weblink)
     
     return redirect(weblink)
 
@@ -1329,7 +1330,7 @@ def flatbom(partnumber,revision,components_only):
 
     #Get the top part level object
     part_in=Part.query.filter_by(partnumber=partnumber,revision=rev).first()
-    print(part_in)
+    #print(part_in)
     #Set qty to one to compute the rest and updatepaths
     part_in.qty=1
     part_in.updatefilespath(fileserver_path,local=True)
@@ -1363,10 +1364,10 @@ def flatbom(partnumber,revision,components_only):
     path, filename = os.path.split(excelbom)
     if components_only=="YES":
         finalfile=fileserver_path+deliverables_folder+"temp/COMPONENTS_ONLY-"+filename
-        #print("final " ,finalfile)
+        #orint("final " ,finalfile)
     else:
         finalfile=fileserver_path+deliverables_folder+"temp/FULL_FLAT_BOM-"+filename
-        #print("final " ,finalfile)
+        #orint("final " ,finalfile)
 
 
     shutil.copy2(Path(excelbom),Path(finalfile) )
@@ -1423,7 +1424,7 @@ def process_label_list(partnumber,revision,processin,components_only):
 
     #Get the top part level object
     part_in=mongoPart.objects(partnumber=partnumber,revision=rev).first()
-    print(part_in)
+    #print(part_in)
     #Set qty to one to compute the rest and updatepaths
     part_in.qty=1
     part_in.updateFileset(fileserver_path,local=True)
@@ -1496,7 +1497,7 @@ def process_label_list(partnumber,revision,processin,components_only):
     #Create the web link 
     weblink="http://"+finalfile.replace(fileserver_path,webfileserver)
 
-    print(weblink)
+    #print(weblink)
     
     return redirect(weblink)
 
@@ -1570,7 +1571,7 @@ def hello():
 
 @tinylib.route('/createjob', methods=['GET', 'POST'])
 def createjob():
-    jobs=Job.query.order_by(desc(Job.id)).limit(5)
+    jobs=mongoJob.objects()
  
     jobform = CreateJob()
     jobcreated=False
@@ -1583,19 +1584,16 @@ def createjob():
         session['search']=searchstring
         return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
 
-    if current_user.can(Permission.WRITE) and jobform.validate_on_submit():
-        print("dassdfasdfasdfas")
-        job= Job(   jobnumber = jobform.jobnumber.data,
+    if  request.method == 'POST' and current_user.can(Permission.WRITE) and jobform.validate_on_submit():
+        print("************************************")
+        job= mongoJob(  jobnumber=jobform.jobnumber.data, #jobnumber = jobform.jobnumber.data,
                     description = jobform.description.data,
                     customer =jobform.customer.data,
                     
-                    user_id =current_user._get_current_object().id,
+                    user_id =str(current_user._get_current_object().id),
                     # date_due=   jobform.date_due.data,
                     )
-                                  
-        db.session.add(job)
-        db.session.commit()
-        # db.session.close()
+        job.save()
         jobcreated=True
         flash("job created successfully")
         return redirect(url_for('tinylib.createjob', jobs=jobs,form=jobform,searchform=searchform, jobcreated=jobcreated))
@@ -1606,7 +1604,7 @@ def createjob():
 
 
 def isjobnumber(jobnumber):
-    job=Job.query.filter_by(jobnumber=jobnumber).first()
+    job=mongoJob.objects(jobnumber=jobnumber).first()
     if job==None:
         return False
     else: 
@@ -1623,27 +1621,27 @@ def checkjobnumber():
     # resp.value="dfasdfa"
     # return resp
     
-    # print(jsonify(request.args))
-    # print(jsonify(request.args))
-    # print(dir(request))
+    # #print(jsonify(request.args))
+    # #print(jsonify(request.args))
+    # #print(dir(request))
 
     jobnumber=request.form['jobnumber']
 
-    if jobnumber:
-        print(jobnumber)
+    # if jobnumber:
+        #print(jobnumber)
 
     
 
-    print(request.method)
+    #print(request.method)
     if jobnumber and request.method == 'POST':
         if isjobnumber(jobnumber):
-                print("existing")
+                #print("existing")
                 resp = jsonify(text=1)
                 # resp.status_code = 200
                 return resp
 
         else:
-            print("NOT existing")
+            #print("NOT existing")
             resp = jsonify(text=0)
             # resp.status_code = 200
             return resp
@@ -1666,7 +1664,8 @@ def jobs_home():
         return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
 
 
-    jobs=Job.query.order_by(desc(Job.id))
+    # jobs=Job.query.order_by(desc(Job.id))
+    jobs=mongoJob.objects().order_by('+jobnumber')
 
     
     return render_template('tinylib/jobs.html', jobs=jobs,searchform=searchform)
@@ -1705,8 +1704,8 @@ def updatepart_api():
     description=request.values.get('description')
     process=request.values.get('process')
     finish=request.values.get('finish')
-    # print("xxxxxxxxxxxxxxxxxxxx")
-    # print(partid,partnumber,revision,description,process,finish)
+    # #print("xxxxxxxxxxxxxxxxxxxx")
+    # #print(partid,partnumber,revision,description,process,finish)
 
     
     #Findpart
@@ -1734,11 +1733,11 @@ def updatepart_api():
 #     process2=request.values.get('process2')
 #     process3=request.values.get('process3')
 #     finish=request.values.get('finish')
-#     print(partid,partnumber,revision,description,process,process2,process3,finish)
+#     #print(partid,partnumber,revision,description,process,process2,process3,finish)
    
 #     database_part=db.session.query(Part).filter(and_(Part.partnumber==partnumber,Part.revision==revision)).first()
     
-#     print(database_part.partnumber)
+#     #print(database_part.partnumber)
 #     #db.session.delete(database_part)
 #     # db.session.commit()
 #     deletepart(database_part)
@@ -1749,42 +1748,50 @@ def updatepart_api():
 def deletejob():
     
     request_data =request.values.get('jobnumber')
-    print(request_data)
+    #print(request_data)
     request_data =request.values.get('id')
-    print(request_data)
+    #print(request_data)
     request_data =request.values.get('description')
-    print(request_data)
+    #print(request_data)
     request_data =request.values.get('customer')
-    print(request_data)
+    #print(request_data)
 
     jobnumber=request.values.get('jobnumber')
     jobid=request.values.get('id')
 
-    
-    database_job=db.session.query(Job).filter(Job.id==jobid).first()
-    if database_job:
-        db.session.delete(database_job)
-        db.session.commit() 
+    job=mongoJob.objects(jobnumber=jobnumber).first()
+    job.delete()
+    # database_job=db.session.query(Job).filter(Job.id==jobid).first()
+    # if database_job:
+    #     db.session.delete(database_job)
+    #     db.session.commit() 
+
+
 
     return jsonify(request_data)
 
 @tinylib.route('/jobapi/update', methods=['GET','POST'])
 def updatejob():
     
-    jobid=request.values.get('id')
+    jobid=request.values.get('_id')
     jobnumber=request.values.get('jobnumber')
     jobdescription=request.values.get('description')
     jobcustomer=request.values.get('customer')
 
     print (jobid,jobnumber,jobdescription,jobcustomer)
 
-    database_job=db.session.query(Job).filter(Job.id==jobid).first()
-    database_job.id=jobid
-    database_job.jobnumber=jobnumber
-    database_job.description=jobdescription
-    database_job.customer=jobcustomer
-    db.session.commit() 
-           
+    # database_job=db.session.query(Job).filter(Job.id==jobid).first()
+    # database_job.id=jobid
+    # database_job.jobnumber=jobnumber
+    # database_job.description=jobdescription
+    # database_job.customer=jobcustomer
+    # db.session.commit() 
+
+    job=mongoJob.objects(jobnumber=jobnumber).first()
+    job.jobnumber=jobnumber
+    job.description=jobdescription
+    job.customer=jobcustomer
+    job.save()
 
 
     return jsonify("Success")
@@ -1792,15 +1799,19 @@ def updatejob():
 
 @tinylib.route('/jobdata', methods=['GET', 'POST'])
 def data():
-    jobs=Job.query.order_by(desc(Job.id))
-    data=[]
-    print("dsafad")
-    for job in jobs:
-        jobdict=job.__dict__
-        #jobdict['user']=job.user.username
-        # print(jobdict)
+    # jobs=Job.query.order_by(desc(Job.id))
 
-        jobdict.pop('_sa_instance_state')
+    jobs=mongoJob.objects()
+    data=[]
+    #print("dsafad")
+    for job in jobs:
+        jobdict=job.to_dict()
+        #jobdict['user']=job.user.username
+        print(jobdict)
+        try:
+            jobdict.pop('_sa_instance_state')
+        except:
+            pass
         
         data.append(jobdict)
 
@@ -1819,13 +1830,13 @@ def searchdata(searchstring):
         session['search']=searchstring
         return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
 
-    print(searchstring)
+    #print(searchstring)
     search="%"+ searchstring+"%"
 
     results=Part.query.filter(or_(Part.description.like(search),
                                 Part.partnumber.like(search))).order_by(Part.id.desc())
     data=[]
-    print("dsafad")
+    #print("dsafad")
     for part in results:
         part.updatefilespath(webfileserver)
         part.allprocesses=part.process + " "+part.process2 + " "+part.process3
@@ -1850,7 +1861,7 @@ def tree_dict (partin):
         partdict0=partin.as_dict()
         partdict=copy.copy(partdict0)
         partdict['children']=[]
-        #print(partdict)
+        #orint(partdict)
 
         def loopchildren(partdict,qty,reflist):
             partnumber=partdict['partnumber']
@@ -1865,21 +1876,21 @@ def tree_dict (partin):
             
             
             if len(children_loop)>0:
-                #print("level",part_loop.partnumber)
+                #orint("level",part_loop.partnumber)
                 partdict['children']=[]
    
             for child_loop in children_loop:
-                #print(child_loop)
+                #orint(child_loop)
                 child_loop.pngpath="xxxxx"
-                print(child_loop.pngpath)
+                #print(child_loop.pngpath)
                 child_loop.updatefilespath(webfileserver)
-                print('object',child_loop.pngpath)
+                #print('object',child_loop.pngpath)
                 test=child_loop.pngpath
-                print(test)
+                #print(test)
                 child_dict0=child_loop.as_dict()
                 child_dict=copy.copy(child_dict0)
                 child_dict['pngpath']=test
-                print('dict png path',child_dict['pngpath'])
+                #print('dict png path',child_dict['pngpath'])
                 child_dict['branch_qty']=child_loop.qty*qty
                 child_dict['qty']=child_loop.qty
 
@@ -1889,8 +1900,8 @@ def tree_dict (partin):
                     #try:
                         loopchildren(child_dict, child_dict['branch_qty'],reflist)
                     #except:
-                     #   print("Problem with", child_loop.partnumber)
-                      #  print(traceback.format_exc())
+                     #   #print("Problem with", child_loop.partnumber)
+                      #  #print(traceback.format_exc())
 
                 reflist.append(((child_dict['partnumber'],child_dict['revision']),child_dict['branch_qty']))
                     
@@ -1911,8 +1922,178 @@ def tree_dict (partin):
         
         #flatbom.sort(key=lambda x: (x.category,x.supplier,x.oem,x.approved,x.partnumber))
         
-        #print(len(flatbom))
-        #print(flatbom)
+        #orint(len(flatbom))
+        #orint(flatbom)
         partdict['flatbom']=flatbom
         
         return partdict
+
+
+
+
+
+
+
+
+
+
+@tinylib.route('/createsupplier', methods=['GET', 'POST'])
+def createsupplier():
+    suppliers=mongoSupplier.objects()
+ 
+    supplierform = CreateSupplier()
+    suppliercreated=False
+    
+    ##Simple search snippet to add to every view   methods=['GET', 'POST'])
+    searchform= SearchSimple()
+
+    if searchform.validate_on_submit() :
+        searchstring=searchform.search.data
+        session['search']=searchstring
+        return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
+
+    if  request.method == 'POST' and current_user.can(Permission.WRITE) and supplierform.validate_on_submit():
+        print("************************************")
+        print(supplierform.processes.data)
+
+
+
+        supplier= mongoSupplier(  suppliername=supplierform.suppliername.data, 
+                    description = supplierform.description.data,
+                    address =supplierform.address.data,
+                    location =supplierform.location.data,
+                    contact=supplierform.contact.data,
+                    processes=sorted(list(filter(None,supplierform.processes.data))),
+                    
+                    # user_id =str(current_user._get_current_object().id),
+                    # date_due=   supplierform.date_due.data,
+                    )
+        print(supplier)
+        supplier.save()
+        suppliercreated=True
+        flash("supplier created successfully")
+        return redirect(url_for('tinylib.createsupplier', suppliers=suppliers,form=supplierform,searchform=searchform, suppliercreated=suppliercreated))
+
+
+    return render_template('tinylib/supplier_create.html', suppliers=suppliers,form=supplierform,searchform=searchform, suppliercreated=suppliercreated)
+
+
+def issuppliername(suppliername):
+    supplier=mongoJob.objects(suppliername=suppliername).first()
+    if supplier==None:
+        return False
+    else: 
+        
+        return True
+
+
+@tinylib.route('/checksuppliername', methods=['GET','POST'])
+@login_required
+@permission_required(Permission.MODERATE)
+def checksuppliername():
+
+    suppliername=request.form['suppliername']
+
+
+    #print(request.method)
+    if suppliername and request.method == 'POST':
+        if issuppliername(suppliername):
+                #print("existing")
+                resp = jsonify(text=1)
+                # resp.status_code = 200
+                return resp
+
+        else:
+            #print("NOT existing")
+            resp = jsonify(text=0)
+            # resp.status_code = 200
+            return resp
+    else:
+        resp = jsonify(text=-1)
+        # resp.status_code = 200
+        return resp
+
+
+
+
+
+
+
+@tinylib.route('/createorder', methods=['GET', 'POST'])
+def createorder():
+    orders=mongoOrder.objects()
+ 
+    orderform = CreateOrder()
+    ordercreated=False
+    #List all the available jobs and force it into the form
+    
+    orderform.job.choices=[("","")]+[(x.jobnumber,x.jobnumber) for x in mongoJob.objects()]
+    print(orderform.job.choices)
+
+    
+    ##Simple search snippet to add to every view   methods=['GET', 'POST'])
+    searchform= SearchSimple()
+
+    if searchform.validate_on_submit() :
+        searchstring=searchform.search.data
+        session['search']=searchstring
+        return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
+
+    if  request.method == 'POST' and current_user.can(Permission.WRITE) and orderform.validate_on_submit():
+        print("************************************")
+        order= mongoOrder(  ordernumber=orderform.ordernumber.data, #ordernumber = orderform.ordernumber.data,
+                    description = orderform.description.data,
+                    job =orderform.job.data,
+                    supplier =orderform.supplier.data,
+                    user_id =str(current_user._get_current_object().id),
+                    # date_due=   orderform.date_due.data,
+                    )
+        order.save()
+        ordercreated=True
+        flash("order created successfully")
+        return redirect(url_for('tinylib.createorder', orders=orders,form=orderform,searchform=searchform, ordercreated=ordercreated))
+
+
+    return render_template('tinylib/order_create.html', orders=orders,form=orderform,searchform=searchform, ordercreated=ordercreated)
+
+
+
+
+def isordernumber(ordernumber):
+    order=mongoOrder.objects(ordernumber=ordernumber).first()
+    if order==None:
+        return False
+    else: 
+        
+        return True
+
+@tinylib.route('/checkordernumber', methods=['GET','POST'])
+@login_required
+@permission_required(Permission.MODERATE)
+def checkordernumber():
+
+
+    ordernumber=request.form['ordernumber']
+
+    # if ordernumber:
+        #print(ordernumber)
+
+    
+
+    #print(request.method)
+    if ordernumber and request.method == 'POST':
+        if isordernumber(ordernumber):
+                #print("existing")
+                resp = jsonify(text=1)
+                # resp.status_code = 200
+                return resp
+
+        else:
+            #print("NOT existing")
+            resp = jsonify(text=0)
+            # resp.status_code = 200
+            return resp
+    else:
+        resp = jsonify(text=-1)
+        # resp.status_code = 200
+        return resp

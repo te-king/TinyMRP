@@ -1,9 +1,10 @@
 function tinytablefunc(inputsearch) {
- 
+
+
 
 $(document).ready(function () {
 
-  
+
   //'{{ searchstring}}'
   //alert(searchstring)
 

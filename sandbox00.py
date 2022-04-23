@@ -1,3 +1,43 @@
+"id": "1",
+"jobnumber": "keksieskdo",
+"description": "dkdieksdoies",
+"customer": "keksieskdo",
+"user_id": "1",
+"date_create": "2022-01-02 08:08:34.750696",
+"date_due": " ",
+"date_modify": " ",
+"date_finish": " ",
+
+"(?<oo>[a-zA-Z0-9_]+)": "(?<foo>[a-zA-Z0-9- :.]+)",
+$1=StringField( $2 )
+
+
+
+id=StringField( )
+jobnumber=StringField( )
+description=StringField( )
+customer=StringField( )
+user_id=StringField( )
+date_create=StringField( )
+date_due=StringField( )
+date_modify=StringField( )
+date_finish=StringField( )
+
+
+
+
+(?<foo>"[.a-zA-Z0-9_-]+"):(?<o>"[,+-.a-zA-Z0-9_ ]+"),
+$1['$2']
+
+
+show dbs
+use TinyMRP
+
+db.part.deleteMany({  partnumber: RegExp('TMRP')})
+
+
+
+
 
 allparts=mongoPart.objects()
 paco=allparts(partnumber="AWS-A-010174")[0]

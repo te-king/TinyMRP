@@ -66,6 +66,8 @@
                         {% if current_user.can(Permission.MODERATE) %}
                         
                         <li> <a href="{{ url_for('tinylib.createjob') }}">New Job</a></li>
+                        <li> <a href="{{ url_for('tinylib.createsupplier') }}">New Supplier</a></li>
+                        <li> <a href="{{ url_for('tinylib.createorder') }}">New Order</a></li>
                         {% endif %}
                     </ul>
                 </li>

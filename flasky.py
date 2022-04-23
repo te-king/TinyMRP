@@ -18,7 +18,7 @@ from app import create_app, db
 from app.models import User, Follow, Role, Permission, Post, Comment
 from app.tinylib.models import Part, solidbom, Bom, Job, Jobbom, deletepart, variables_conf
 
-from app.tinylib.models import mongoPart,client,mongodb,partcol,mongoFileSet
+from app.tinylib.models import mongoPart, mongoJob,client,mongodb,partcol
 
 
 from config import config as config_set
@@ -38,7 +38,7 @@ def make_shell_context():
                 Part=Part, Bom=Bom, Job=Job, Jobbom=Jobbom, fileserver_path=fileserver_path,
                 deletepart=deletepart,variables_conf=variables_conf,
                 mongoPart=mongoPart,client=client,mongodb=mongodb,partcol=partcol,
-                mongoFileSet=mongoFileSet
+                mongoJob=mongoJob
                 )
 
 

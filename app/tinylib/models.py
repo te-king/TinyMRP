@@ -110,26 +110,6 @@ partcol=mongodb["part"]
 
 
 
-#File sets class:
-class mongoFileSet(EmbeddedDocument):
-    description=StringField()
-    modelpath=StringField()
-    pngpath=StringField()
-    pdfpath=StringField()
-    dxfpath=StringField()
-    edrpath=StringField()
-    edr_dpath=StringField()
-    steppath=StringField()
-    threemfpath=StringField()
-    datasheetpath=StringField()
-    #Real pictures of the object
-    picpath=ListField(StringField())
-    #pics for drawings allows several pages (several images)
-    png_dpath=StringField()
-    #For another attachements
-    otherspath=ListField(StringField())
-
-
 #Core inventory class 
 class mongoPart(DynamicDocument):
     meta = {'collection': 'part'}
@@ -151,7 +131,6 @@ class mongoPart(DynamicDocument):
     customer=DynamicField()
     
     #Related files locations
-    #fileset=EmbeddedDocumentField(mongoFileSet)
     modelpath=StringField()
     pngpath=StringField()
     pdfpath=StringField()
@@ -273,9 +252,9 @@ class mongoPart(DynamicDocument):
 
     #For the print outs on terminal of the object
     def __repr__(self):
-        return f'P/N_{self.partnumber}_REV_{self.revision}_DES_{self.description})'
+        return f'P/N_{self.partnumber}_REV_{self.revision}_DES_{self.description}'
     def __str__ (self):
-        return f'P/N_{self.partnumber}_REV_{self.revision}_DES_{self.description})'
+        return f'P/N_{self.partnumber}_REV_{self.revision}_DES_{self.description}'
     
 
     #To get the children with quantities
@@ -345,15 +324,20 @@ class mongoPart(DynamicDocument):
         self['process_icons']=[]
         self['process_colors']=[]
 
+        if not "process2" in self.to_dict().keys(): self['process2']=""
+        if not "process3" in self.to_dict().keys(): self['process3']=""
+
         if type(self['process'])==str:
             self['process']=[self['process']]
             if self['process2'] and self['process2']!="" and self['process2']!=" ":
                  self['process'].append(self['process2'])
-            if self['process3'] and self['process3']!="" and self['process2']!=" ":
+            if self['process3'] and self['process3']!="" and self['process3']!=" ":
                  self['process'].append(self['process3'])
-            persist=True
+            persist=True 
 
         if type(self['process'])==list:
+            
+            self['process']=[x for x in self['process'] if x and x!="" and x!=" "]
             
             #Put all to lowercase
             self['process']=list(map(lambda x: x.lower(), self['process']))
@@ -376,8 +360,8 @@ class mongoPart(DynamicDocument):
     def to_dict(self):
         print(self.partnumber)
         
-        #dirty_dict=self.to_mongo()#.to_dict()
-        #dirty_dict['_id']=str(dirty_dict['_id'])
+        # dirtydict=self.to_mongo()#.to_dict()
+        #
 
         dirtydict={}
         dirtydict['partnumber']=self.partnumber
@@ -388,13 +372,19 @@ class mongoPart(DynamicDocument):
         dirtydict['children']=self.children
         dirtydict['pngpath']=self.pngpath
 
+        
+        dirtydict=self.to_mongo().to_dict()
+        dirtydict['_id']=str(dirtydict['_id'])
+        
+        print(dirtydict)
+        
         cleanchildren=[]
         for child in dirtydict['children']:
             cleanchildren.append(str(child))
         
         dirtydict['children']=cleanchildren
 
-
+        
 
         return dirtydict
     
@@ -447,8 +437,6 @@ class mongoPart(DynamicDocument):
     def updateFileset(self,web=False,persist=False):
         self.get_tag()
         parttag=self.partnumber+"_REV_"+self.revision
-        # if self.fileset is None:
-        #     self.fileset=mongoFileSet(description="Fileset for "+parttag)
         save=False
         for filetype in config['DELIVERABLES']:
             filelist=[]
@@ -497,20 +485,23 @@ class mongoPart(DynamicDocument):
 
 
     def getweblinks(self,checkfiles=False):
-        parttag=self.partnumber+"_REV_"+self.revision
+        if self.partnumber ==None:
+            pass
+        else:
+            parttag=self.partnumber+"_REV_"+self.revision
 
-        if checkfiles:
-            self.updateFileset(web=True)
-        else:        
-            for filetype in config['DELIVERABLES']:
-                filelist=[]
-                for extension in config['DELIVERABLES'][filetype]['extension']:
-                    filetag=config['DELIVERABLES'][filetype]['path']+parttag+str(config['DELIVERABLES'][filetype]['filemod'])+"."+extension
-                    try:
-                            self[filetype+'path']=self[filetype+'path'].replace(fileserver_path,webfileserver)
-                            # print(self[filetype+'path'])
-                    except:
-                            pass
+            if checkfiles:
+                self.updateFileset(web=True)
+            else:        
+                for filetype in config['DELIVERABLES']:
+                    filelist=[]
+                    for extension in config['DELIVERABLES'][filetype]['extension']:
+                        filetag=config['DELIVERABLES'][filetype]['path']+parttag+str(config['DELIVERABLES'][filetype]['filemod'])+"."+extension
+                        try:
+                                self[filetype+'path']=self[filetype+'path'].replace(fileserver_path,webfileserver)
+                                # print(self[filetype+'path'])
+                        except:
+                                pass
 
 
     
@@ -774,6 +765,115 @@ def get_children(father_partnumber,father_rev,bom,flatbom, qty="total"):
 #         self.pic_path=pic_path
 #         self.created=created
 
+
+
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+
+
+class mongoJob(DynamicDocument):
+    meta = {'collection': 'job'}
+
+    jobnumber=StringField(unique=True )
+    description=StringField( )
+    customer=StringField( )
+    user_id=StringField( )
+    date_create=StringField( )
+    date_due=StringField( )
+    date_modify=StringField( )
+    date_finish=StringField( )
+
+
+
+    #For the print outs on terminal of the object
+    def __repr__(self):
+        return f'Job/n_{self.jobnumber}_DES_{self.description}'
+    def __str__ (self):
+        return f'Job/n_{self.jobnumber}_DES_{self.description}'
+
+    def to_dict(self):        
+        dirtydict=self.to_mongo().to_dict()
+        try:
+            dirtydict['_id']=str(dirtydict['_id'])
+        except:
+            pass     
+        return dirtydict
+
+
+
+class mongoSupplier (DynamicDocument):
+    meta = {'collection': 'supplier'}
+    
+    suppliername=StringField(unique=True )
+    description=StringField( )
+    location=StringField()
+    address= StringField()
+    processes= ListField(StringField())
+    contact= StringField()
+    
+
+    #For the print outs on terminal of the object
+    def __repr__(self):
+        return f'Supplier_{self.suppliername}_DES_{self.description}'
+    def __str__ (self):
+        return f'Supplier_{self.suppliername}_DES_{self.description}'
+
+    def to_dict(self):        
+        dirtydict=self.to_mongo().to_dict()
+        try:
+            dirtydict['_id']=str(dirtydict['_id'])
+        except:
+            pass     
+        return dirtydict
+
+    
+
+class mongoOrder (DynamicDocument):
+    meta = {'collection': 'order'}
+
+    ordernumber=StringField(unique=True )
+    description=StringField( )
+    job=StringField()
+    supplier=ReferenceField(mongoSupplier)
+    parts=ListField(ReferenceField(mongoPart))
+    user_id=StringField( )
+    date_create=StringField( )
+    date_due=StringField( )
+    date_modify=StringField( )
+    date_finish=StringField( )
+
+    #For the print outs on terminal of the object
+    def __repr__(self):
+        return f'Job/n_{self.ordernumber}_DES_{self.description}'
+    def __str__ (self):
+        return f'Job/n_{self.ordernumber}_DES_{self.description}'
+
+    def to_dict(self):        
+        dirtydict=self.to_mongo().to_dict()
+        try:
+            dirtydict['_id']=str(dirtydict['_id'])
+        except:
+            pass     
+        return dirtydict
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class solidbom():
     
     def __init__(self, bomfile, flatfile,deliverableslocation,outputfolder,toppart=None):
@@ -817,13 +917,14 @@ class solidbom():
             
             ##### Load the input file and create the dataframe
             if bomfile!="" and flatfile!="":
-                # print(input("test"))
+               
                 print(flatfile)
 
                 #Insert all the individual part files, it will override the properties of the previous ones
                 with open(flatfile) as f:
                     lines=f.readlines()
                     print(lines)
+                
 
                 for line  in lines:  
                     print(line)
@@ -861,12 +962,36 @@ class solidbom():
 
                         partcol.update_one({"partnumber":partnumber, "revision":revision},{ "$unset":fieldsdrop})
                         partcol.update_one({"partnumber":partnumber, "revision":revision},{ "$set":partdict})
+                        print("-----------------------------------------------------")
+                        print("-----------------------------------------------------")
+                        print(partdict)
+                        print("-----------------------------------------------------")
+                        print("-----------------------------------------------------")
                     
                     part=mongoPart.objects(partnumber=partnumber,revision=revision)[0]
                     part.updateFileset(persist=True)
                     if part.pngpath:
                         cropandbackground(part.pngpath)
+                    
                     part.get_process_icons(persist=True)
+
+
+                    #To add the coating process if specified
+                    if "zinc" in part.finish.lower():
+                        part.process.append("zinc")
+                        part.get_process_icons(persist=True)
+                    
+                    if "gal" in part.finish.lower():
+                        part.process.append("galvanize")
+                        part.get_process_icons(persist=True)
+                    
+                    if "nickel" in part.finish.lower():
+                        part.process.append("nickel")
+                        part.get_process_icons(persist=True)
+
+                    
+
+
 
                     qr_code(part, persist=True)
 

@@ -1,3 +1,8 @@
+# Folders
+app/tinylib/upload/*
+
+*#
+
 *.py[cod]
 
 # C extensions
@@ -47,3 +52,4 @@ venv
 .env
 .env-mysql
 tinyserver.sock
+~$TinyMRP_conf.xlsm
