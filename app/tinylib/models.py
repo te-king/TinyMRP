@@ -785,6 +785,7 @@ class mongoJob(DynamicDocument):
     date_due=StringField( )
     date_modify=StringField( )
     date_finish=StringField( )
+    bom=ListField(DynamicField())
 
 
 

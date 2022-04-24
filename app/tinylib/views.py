@@ -1670,6 +1670,65 @@ def jobs_home():
     
     return render_template('tinylib/jobs.html', jobs=jobs,searchform=searchform)
 
+
+
+
+@tinylib.route('/jobs/manage/<jobnumber>', methods=['GET', 'POST'])
+@login_required
+def job_manage(jobnumber):
+
+    ##Simple search snippet to add to every view   methods=['GET', 'POST'])
+    searchform= SearchSimple()
+    if searchform.validate_on_submit() :
+        searchstring=searchform.search.data
+        session['search']=searchstring
+        return redirect(url_for('tinylib.search',searchstring=searchstring,page=1, searchform=searchform ))
+    
+    jobform = EditJob()
+
+    if request.method=='GET':
+        print("************ GET ***********")
+        job=mongoJob.objects(jobnumber=jobnumber).first()
+        #Prepopulate with existing data
+        
+        jobform.jobnumber.data=job.jobnumber
+        jobform.description.data=job.description
+        jobform.customer.data=job.customer
+        return render_template('tinylib/job_details.html', job=job, form=jobform, searchform=searchform)
+    else:
+    
+    # if  request.method == 'POST' and current_user.can(Permission.WRITE) and jobform.validate_on_submit():
+        print("************** POST ********************")
+        job=mongoJob.objects(jobnumber=jobnumber).first()
+
+        jobform.jobnumber.data=job.jobnumber
+
+        # job.jobnumber=jobform.jobnumber.data
+        job.description=jobform.description.data
+        job.customer=jobform.customer.data
+        job.user_id=str(current_user._get_current_object().id)
+
+        job.save()
+        jobcreated=True
+        flash("job MODIFIED successfully")
+        return render_template('tinylib/job_details.html', job=job, form=jobform, searchform=searchform)
+
+
+
+
+
+@tinylib.route('/jobs/link/', methods=['GET', 'POST'])
+@login_required
+def job_link():
+    jobnumber=request.values.get('jobnumber')
+    job=mongoJob.objects(jobnumber=jobnumber).first()
+    joblink=url_for('tinylib.job_manage',jobnumber=jobnumber)
+    print(joblink)
+    
+    return joblink
+
+
+
 @tinylib.route('/downloads', methods=['GET', 'POST'])
 @login_required
 @permission_required(Permission.MODERATE)
@@ -2097,3 +2156,35 @@ def checkordernumber():
         resp = jsonify(text=-1)
         # resp.status_code = 200
         return resp
+
+
+
+@tinylib.route('/jobapi/addtobom', methods=['GET','POST'])
+def addtojobbom():
+
+    print("*********************************")
+    print("*********************************")
+    print("*********************************")
+    print("*********************************")
+
+    
+    
+    jobnumber=request.values.get('jobnumber')
+    partnumber=request.values.get('partnumber')
+    revision=request.values.get('revision')
+
+    print (jobnumber, partnumber,revision)
+    print("*********************************")
+
+    part=mongoPart.objects(partnumber=partnumber,revision=revision)[0]
+    job=mongoJob.objects(jobnumber=jobnumber).first()
+
+    part=mongoPart.objects()
+
+    partdict={"partnumber":partnumber, "revision":revision,"qty":1 }
+
+    job.bom.append(partdict)
+    job.save()
+
+
+    return jsonify("Success")

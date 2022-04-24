@@ -53,7 +53,7 @@
                         { data: 'customer', class: 'editable text'  },
                         {//edit button creation    
                 render: function (data, type, row) {    
-                    return [createButton('edit', row.id),createButton('delete', row.id)];    
+                    return [createButton('manage', row.id),createButton('edit', row.id),createButton('delete', row.id)];    
                 }},
                         // {},{},{},{},{},
                         ],
@@ -75,15 +75,27 @@
         });
     });
 
-    
-
-
 
 
 function createButton(buttonType, rowID) {    
-    var buttonText = buttonType == "edit" ? "Edit" : "Delete";    
+    var buttonText = "test";
+
+    switch (buttonType){
+        case "edit":
+            buttonText="Edit";
+            break;
+        case "delete":
+            buttonText="Delete";
+            break;
+        case "manage":
+            buttonText="Manage";
+            break;
+
+    }
+    
     return '<button class="' + buttonType + '" type="button">' + buttonText+'</button>';    
 } 
+
 
       
 function fnCreateTextBox(value, fieldprop) {    
@@ -100,10 +112,6 @@ function fnUpdateDataTableValue($inputCell, value) {
     dataTable.rows().data()[rowIndex][fieldName] = value; 
 }    
 
-function fnCreateTextBox(value, fieldprop) {    
-        return '<input data-field="' + fieldprop + '" type="text" value="' + value + '" ></input>';    
-    } 
-   
     
 function fnResetControls() {    
         var openedTextBox = $('#datatable').find('input');    
@@ -269,6 +277,32 @@ $('#datatable').on('click', 'tbody td .edit', function (e) {
     $(clickedRow).find('td .delete').removeClass('delete').addClass('cancel').html('Cancel');    
    
 });        
+
+
+
+$('#datatable').on('click', 'tbody td .manage', function (e) {    
+    fnResetControls();    
+    var dataTable = $('#datatable').DataTable();    
+    var clickedRow = $($(this).closest('td')).closest('tr');    
+    
+    // console.log(clickedRow)
+    console.log(clickedRow[0].cells[1].innerText);
+    var jobnumberc=clickedRow[0].cells[1].innerText;
+    console.log(jobnumberc)
+
+
+    $.post(    '{{ url_for('tinylib.job_link')}}',
+    {jobnumber: jobnumberc},
+    function (data) {
+        console.log(data)
+        window.open(data)
+
+    }
+);
+    //window.open(linkstring)
+    
+   
+});   
 
     </script> 
 
